@@ -160,6 +160,16 @@ details.chart summary small { color: var(--muted); }
 .partials[hidden] { display: none; }
 .cell svg .hd.col { stroke: var(--muted); stroke-width: 0.8; }
 
+/* Accompagnement */
+.accomp { flex-basis: 100%; }
+.accomp[hidden] { display: none; }
+.accrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.inst { border-radius: 999px; padding: 4px 12px; min-height: 32px; font-size: 0.85rem; color: var(--muted); }
+.inst[aria-pressed="true"] { background: var(--brass-soft); color: var(--brass-strong); border-color: var(--brass); font-weight: 600; }
+.accrow .linkbtn { border: 0; background: none; color: var(--brass-strong); text-decoration: underline; padding: 4px 2px; min-height: 0; font-size: 0.85rem; }
+.mix { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
+.mix label { display: inline-flex; align-items: center; gap: 8px; }
+
 /* Octave par passage */
 .ranges { flex-basis: 100%; }
 .rangeform { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.92rem; }
@@ -237,6 +247,13 @@ details.chart summary small { color: var(--muted); }
       </select>
     </label>
     <label class="check" for="colors"><input type="checkbox" id="colors" checked> Couleur selon la note jouée aux lèvres</label>
+    <div class="field accomp" id="accomp" hidden><span>Écouter avec la trompette</span>
+      <div class="accrow" id="accList"></div>
+      <div class="mix">
+        <label for="volTp">Trompette <input type="range" id="volTp" min="0" max="100" step="5" value="100"></label>
+        <label for="volAcc">Autres instruments <input type="range" id="volAcc" min="0" max="100" step="5" value="60"></label>
+      </div>
+    </div>
     <div class="field ranges"><span>Octave par passage</span>
       <div class="rangeform">
         <label for="rFrom">Mesures</label><input type="number" id="rFrom" min="0" step="1" inputmode="numeric" value="1">
@@ -661,7 +678,8 @@ function transformXml(raw, opt) {
 }
 
 /* ---------- État ---------- */
-const state = { raw: null, source: "", parts: [], partId: null, mode: "auto", octave: 0, style: "dots", colors: true, ranges: [] };
+const state = { raw: null, source: "", parts: [], partId: null, mode: "auto", octave: 0, style: "dots", colors: true, ranges: [], accOff: [], volTp: 100, volAcc: 60 };
+let accParts = []; // [{id, name, events:[{t, midi, dur}], voice}]
 let osmd = null, steps = [], cur = 0, tempo = 96;
 
 const status = $("#status");
@@ -846,7 +864,7 @@ function persistSettings() {
   const id = lib.currentId;
   if (!id || !lib.backend) return;
   clearTimeout(settingsTimer);
-  const settings = { partId: state.partId, mode: state.mode, octave: state.octave, ranges: state.ranges };
+  const settings = { partId: state.partId, mode: state.mode, octave: state.octave, ranges: state.ranges, accOff: state.accOff, volTp: state.volTp, volAcc: state.volAcc };
   settingsTimer = setTimeout(() => queueWrite(() => lib.backend.update(id, { settings })), 600);
 }
 
@@ -893,6 +911,84 @@ function syncControls() {
   const r = document.getElementById("mode-" + state.mode); if (r) r.checked = true;
   $("#octave").value = String(state.octave);
   renderRanges();
+  renderAccomp();
+}
+
+/* ---------- Accompagnement : les autres parties de la partition ---------- */
+function voiceFor(name) {
+  if (/fl[ûu]t|piccolo|fifre/i.test(name)) return { type: "triangle", bright: 3, gain: 0.55 };
+  if (/clar/i.test(name)) return { type: "square", bright: 2.5, gain: 0.3 };
+  if (/sax/i.test(name)) return { type: "sawtooth", bright: 3, gain: 0.32 };
+  if (/tromb|euph|baryton|tuba|sousa|basse|bass|hélicon|helicon/i.test(name)) return { type: "sawtooth", bright: 2.2, gain: 0.42 };
+  if (/tromp|trump|cornet|bugle|mello|cor\b|horn/i.test(name)) return { type: "sawtooth", bright: 3.5, gain: 0.32 };
+  if (/piano|guitar|guitare|harp|harpe|marimba|xylo|vibra|clavier|keyboard/i.test(name)) return { type: "triangle", bright: 4, gain: 0.5, pluck: true };
+  if (/viol|cello|contreb|string|cordes/i.test(name)) return { type: "sawtooth", bright: 2.2, gain: 0.3 };
+  return { type: "triangle", bright: 3, gain: 0.45 };
+}
+
+// Lit chaque partie (sons réels) en événements {t, midi, dur}, t et dur en rondes depuis le début.
+function parseAccompaniment(raw) {
+  const doc = new DOMParser().parseFromString(raw, "application/xml");
+  if (doc.getElementsByTagName("parsererror").length) return [];
+  const names = new Map([...doc.getElementsByTagName("score-part")].map((sp) => [sp.getAttribute("id"), (kid(sp, "part-name")?.textContent || "").trim()]));
+  return kids(doc.documentElement, "part").map((part) => {
+    const id = part.getAttribute("id"), name = names.get(id) || id;
+    const tr = part.getElementsByTagName("transpose")[0];
+    const chrom = tr ? (+txt(tr, "chromatic") || 0) + 12 * (+txt(tr, "octave-change") || 0) : 0;
+    const events = [], ties = new Map();
+    let divisions = 1, mStart = 0;
+    for (const m of kids(part, "measure")) {
+      let pos = 0, maxPos = 0, last = 0;
+      for (const el of m.children) {
+        if (el.nodeName === "attributes") { const d = +txt(el, "divisions"); if (d > 0) divisions = d; continue; }
+        const len = (+(kid(el, "duration")?.textContent) || 0) / divisions / 4;
+        if (el.nodeName === "backup") { pos -= len; continue; }
+        if (el.nodeName === "forward") { pos += len; maxPos = Math.max(maxPos, pos); continue; }
+        if (el.nodeName !== "note" || kid(el, "grace")) continue;
+        const isChord = !!kid(el, "chord");
+        const start = isChord ? last : pos;
+        if (!isChord) { last = pos; pos += len; maxPos = Math.max(maxPos, pos); }
+        const p = kid(el, "pitch"); if (!p) continue;
+        const midi = midiOf(txt(p, "step"), Math.round(+txt(p, "alter") || 0), +txt(p, "octave")) + chrom;
+        const types = kids(el, "tie").map((t) => t.getAttribute("type"));
+        const t = mStart + start;
+        if (types.includes("stop") && ties.has(midi)) {
+          const ev = ties.get(midi); ev.dur = t + len - ev.t;
+          if (!types.includes("start")) ties.delete(midi);
+          continue;
+        }
+        const ev = { t, midi, dur: len };
+        events.push(ev);
+        if (types.includes("start")) ties.set(midi, ev);
+      }
+      mStart += maxPos;
+    }
+    return { id, name, events, voice: voiceFor(name) };
+  }).filter((p) => p.events.length);
+}
+
+function renderAccomp() {
+  const others = accParts.filter((p) => p.id !== state.partId);
+  $("#accomp").hidden = !others.length;
+  $("#accList").innerHTML = others.map((p) =>
+    `<button type="button" class="inst" data-id="${esc(p.id)}" aria-pressed="${!state.accOff.includes(p.id)}">${esc(p.name)}</button>`).join("")
+    + (others.length > 1 ? `<button type="button" class="linkbtn" data-all="1">tous</button><button type="button" class="linkbtn" data-all="0">aucun</button>` : "");
+}
+function accompChanged() { renderAccomp(); persistSettings(); if (playing) { stop(); play(); } }
+$("#accList").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  const others = accParts.filter((p) => p.id !== state.partId).map((p) => p.id);
+  if (b.dataset.all === "1") state.accOff = [];
+  else if (b.dataset.all === "0") state.accOff = others;
+  else { const id = b.dataset.id; state.accOff = state.accOff.includes(id) ? state.accOff.filter((x) => x !== id) : [...state.accOff, id]; }
+  accompChanged();
+});
+for (const [sel, key] of [["#volTp", "volTp"], ["#volAcc", "volAcc"]]) {
+  $(sel).addEventListener("input", (e) => {
+    state[key] = +e.target.value;
+    if (buses[key]) buses[key].gain.setTargetAtTime(state[key] / 100, actx.currentTime, 0.03);
+  });
+  $(sel).addEventListener("change", persistSettings);
 }
 
 /* ---------- Octave par passage ---------- */
@@ -940,6 +1036,11 @@ async function loadRaw(raw, source, entry = null) {
     ? s.ranges.filter((r) => r && Number.isInteger(r.from) && Number.isInteger(r.to) && (r.shift === 1 || r.shift === -1)).map((r) => ({ from: r.from, to: r.to, shift: r.shift }))
     : [];
   $("#rErr").textContent = "";
+  state.accOff = Array.isArray(s.accOff) ? s.accOff.filter((x) => typeof x === "string") : [];
+  state.volTp = Number.isFinite(s.volTp) ? s.volTp : 100;
+  state.volAcc = Number.isFinite(s.volAcc) ? s.volAcc : 60;
+  $("#volTp").value = state.volTp; $("#volAcc").value = state.volAcc;
+  try { accParts = parseAccompaniment(raw); } catch (e) { console.warn(e); accParts = []; }
   syncControls();
   renderLibrary();
   const sel = $("#part");
@@ -1075,8 +1176,25 @@ function showStep() {
 }
 
 /* ---------- Lecture audio ---------- */
-let actx = null, master = null, timers = [], playing = false;
-function synth(freq, at, dur) {
+let actx = null, master = null, timers = [], playing = false, loop = null;
+const buses = { volTp: null, volAcc: null };
+function synthAcc(freq, at, dur, v, dest) {
+  const o = actx.createOscillator(); o.type = v.type; o.frequency.value = freq;
+  const f = actx.createBiquadFilter(); f.type = "lowpass"; f.Q.value = 0.8;
+  f.frequency.value = Math.min(freq * v.bright, 7000);
+  const g = actx.createGain();
+  const end = at + Math.max(dur, 0.06);
+  g.gain.setValueAtTime(0, at);
+  if (v.pluck) {
+    g.gain.linearRampToValueAtTime(v.gain, at + 0.01); g.gain.setTargetAtTime(0, at + 0.01, Math.min(0.6, dur / 2 + 0.1));
+  } else {
+    g.gain.linearRampToValueAtTime(v.gain, at + 0.03); g.gain.setTargetAtTime(v.gain * 0.8, at + 0.03, 0.1);
+    g.gain.setTargetAtTime(0, end, 0.04);
+  }
+  o.connect(f).connect(g).connect(dest);
+  o.start(at); o.stop(end + (v.pluck ? 1.2 : 0.3));
+}
+function synth(freq, at, dur, dest) {
   const o = actx.createOscillator(); o.type = "sawtooth"; o.frequency.value = freq;
   const lfo = actx.createOscillator(); lfo.frequency.value = 5.2;
   const lg = actx.createGain(); lg.gain.setValueAtTime(0, at); lg.gain.linearRampToValueAtTime(freq * 0.005, at + 0.35);
@@ -1089,31 +1207,60 @@ function synth(freq, at, dur) {
   const end = at + Math.max(dur, 0.07);
   g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(1, at + 0.025);
   g.gain.setTargetAtTime(0.7, at + 0.025, 0.08); g.gain.setTargetAtTime(0, end, 0.035);
-  o.connect(f).connect(g).connect(master);
+  o.connect(f).connect(g).connect(dest);
   o.start(at); lfo.start(at); o.stop(end + 0.25); lfo.stop(end + 0.25);
 }
 
+const freqOf = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
 function play() {
   if (!steps.length) return;
   if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; actx = new AC(); }
   actx.resume();
   if (cur >= steps.length - 1) gotoStep(0);
   playing = true; $("#play").textContent = "❚❚ Pause";
-  master = actx.createGain(); master.gain.value = 0.22; master.connect(actx.destination);
+  master = actx.createGain(); master.gain.value = 0.22;
+  const comp = actx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
+  master.connect(comp).connect(actx.destination);
+  buses.volTp = actx.createGain(); buses.volTp.gain.value = state.volTp / 100; buses.volTp.connect(master);
+  buses.volAcc = actx.createGain(); buses.volAcc.gain.value = state.volAcc / 100; buses.volAcc.connect(master);
+
   const spw = (4 * 60) / tempo; // secondes par ronde
-  const start = actx.currentTime + 0.1, i0 = cur, t0 = steps[i0].ts;
-  for (let i = i0; i < steps.length; i++) {
-    const at = start + (steps[i].ts - t0) * spw;
-    for (const n of steps[i].sound) synth(440 * Math.pow(2, (n.midi - 2 - 69) / 12), at, n.dur * spw * 0.92);
-    if (i > i0) timers.push(setTimeout(() => gotoStep(i), (at - actx.currentTime) * 1000));
+  const start = actx.currentTime + 0.12, i0 = cur, t0 = steps[i0].ts - 1e-9;
+  const at = (t) => start + (t - t0) * spw;
+  const events = [];
+  for (let i = i0; i < steps.length; i++)
+    for (const n of steps[i].sound) events.push({ t: steps[i].ts, midi: n.midi - 2, dur: n.dur, v: null });
+  for (const p of accParts) {
+    if (p.id === state.partId || state.accOff.includes(p.id)) continue;
+    for (const e of p.events) if (e.t >= t0) events.push({ t: e.t, midi: e.midi, dur: e.dur, v: p.voice });
   }
+  events.sort((a, b) => a.t - b.t);
   const last = steps[steps.length - 1];
-  const endAt = start + (last.ts - t0 + (last.maxLen || 0.25)) * spw;
-  timers.push(setTimeout(() => stop(), (endAt - actx.currentTime) * 1000 + 150));
-}
+  let endT = last.ts + (last.maxLen || 0.25);
+  for (const e of events) endT = Math.max(endT, e.t + e.dur);
+  const endAt = at(endT);
+
+  // Programmation au fil de l'eau (fenêtre d'une seconde) pour supporter les grandes partitions
+  let ei = 0, si = i0 + 1;
+  const tick = () => {
+    if (!playing) return;
+    const now = actx.currentTime, horizon = now + 1;
+    while (ei < events.length && at(events[ei].t) < horizon) {
+      const e = events[ei++], when = Math.max(at(e.t), now);
+      if (e.v) synthAcc(freqOf(e.midi), when, e.dur * spw * 0.92, e.v, buses.volAcc);
+      else synth(freqOf(e.midi), when, e.dur * spw * 0.92, buses.volTp);
+    }
+    let target = -1;
+    while (si < steps.length && at(steps[si].ts) <= now + 0.01) target = si++;
+    if (target >= 0) gotoStep(target);
+    if (now > endAt + 0.15) stop();
+  };
+  tick();
+  loop = setInterval(tick, 25);}
 
 function stop() {
   playing = false;
+  if (loop) { clearInterval(loop); loop = null; }
   timers.forEach(clearTimeout); timers = [];
   if (master && actx) {
     const m = master; m.gain.setTargetAtTime(0, actx.currentTime, 0.02);
@@ -1171,7 +1318,7 @@ $("#file").addEventListener("change", async (e) => {
   e.target.value = "";
 });
 $("#sample").addEventListener("click", () => { userActed = true; lib.flash = ""; loadRaw(sampleXml(), "Exemple : Au clair de la lune (partie de flûte, sons réels)"); });
-$("#part").addEventListener("change", (e) => { state.partId = e.target.value; persistSettings(); renderScore(); });
+$("#part").addEventListener("change", (e) => { state.partId = e.target.value; renderAccomp(); persistSettings(); renderScore(); });
 document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", (e) => { state.mode = e.target.value; persistSettings(); renderScore(); }));
 $("#octave").addEventListener("change", (e) => { state.octave = +e.target.value; persistSettings(); renderScore(); });
 $("#style").addEventListener("change", (e) => { state.style = e.target.value; renderScore(); });
