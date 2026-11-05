@@ -1,0 +1,1206 @@
+<title>Doigtés Trompette Si♭</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout : un pupitre collant (pistons + transport) au-dessus d'une feuille de partition blanche, puis le tableau de doigtés. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --ink: #16202b;
+  --muted: #5a6573;
+  --line: #d3d9e0;
+  --brass: #a8740f;
+  --brass-strong: #7f5508;
+  --brass-soft: #f6e8c6;
+  --cap: #e4e8ed;
+  --paper: #ffffff;
+  --warn: #b42318;
+  --ok: #1d7a46;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10151b; --surface: #18202a; --ink: #e6ebf0; --muted: #94a1ae; --line: #2b3642;
+    --brass: #e2b04e; --brass-strong: #f3c972; --brass-soft: #3b3018; --cap: #26303b;
+    --paper: #f6f5f1; --warn: #f97066; --ok: #4ccb84; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10151b; --surface: #18202a; --ink: #e6ebf0; --muted: #94a1ae; --line: #2b3642;
+  --brass: #e2b04e; --brass-strong: #f3c972; --brass-soft: #3b3018; --cap: #26303b;
+  --paper: #f6f5f1; --warn: #f97066; --ok: #4ccb84; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+  display: grid; gap: 18px;
+}
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(1.6rem, 3.2vw, 2.2rem); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h1 .flat { color: var(--brass); }
+header.top p { margin: 0; color: var(--muted); max-width: 60ch; }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 1.15rem; margin: 0; }
+
+/* Contrôles */
+.controls { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: end; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field > span { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+select, button, .filebtn {
+  font: inherit; font-size: 0.92rem; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; min-height: 38px;
+}
+select { padding-right: 28px; max-width: 100%; }
+button, .filebtn { cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+button:hover, .filebtn:hover { border-color: var(--brass); }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.filebtn.primary { background: var(--brass); border-color: var(--brass); color: #fff; font-weight: 600; }
+:root[data-theme="dark"] .filebtn.primary { color: #1a1205; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .filebtn.primary { color: #1a1205; } }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); flex-wrap: wrap; }
+.seg label { cursor: pointer; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label span { display: block; padding: 7px 12px; font-size: 0.9rem; border-right: 1px solid var(--line); min-height: 36px; }
+.seg label:last-child span { border-right: 0; }
+.seg input:checked + span { background: var(--brass-soft); color: var(--brass-strong); font-weight: 600; }
+.seg input:focus-visible + span { outline: 2px solid var(--brass); outline-offset: -2px; }
+
+/* Pupitre */
+.desk {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; justify-content: space-between;
+  box-shadow: 0 6px 20px -14px rgba(10, 20, 30, 0.45);
+}
+.now { display: flex; align-items: center; gap: 22px; min-width: 0; flex-wrap: wrap; }
+.valves { display: flex; gap: 14px; }
+.valve { display: grid; justify-items: center; gap: 4px; }
+.cap {
+  width: 58px; height: 58px; border-radius: 50%;
+  background: var(--cap); border: 2px solid var(--line);
+  box-shadow: inset 0 -5px 0 rgba(0,0,0,0.08);
+  transition: background .08s, transform .08s, box-shadow .08s;
+}
+.valve.on .cap {
+  background: radial-gradient(circle at 35% 30%, var(--brass-strong), var(--brass) 65%);
+  border-color: var(--brass-strong); transform: translateY(4px);
+  box-shadow: inset 0 3px 6px rgba(0,0,0,0.3);
+}
+.valve b { font-family: var(--f-mono); font-size: 0.85rem; color: var(--muted); font-weight: 500; }
+.valve.on b { color: var(--brass-strong); }
+.valves.unknown .cap { border-style: dashed; opacity: .5; }
+.noteinfo { display: grid; gap: 2px; min-width: 0; }
+.noteinfo .name { font-family: var(--f-display); font-weight: 800; font-size: 2rem; line-height: 1.05; }
+.noteinfo .sub { color: var(--muted); font-size: 0.88rem; }
+.noteinfo .hint { color: var(--brass-strong); font-size: 0.85rem; font-weight: 500; }
+.noteinfo .warn { color: var(--warn); font-size: 0.85rem; font-weight: 600; }
+.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.transport .btns { display: flex; gap: 6px; }
+.transport button { min-width: 42px; justify-content: center; }
+#play { min-width: 104px; background: var(--ink); color: var(--surface); border-color: var(--ink); font-weight: 600; }
+.tempo { display: grid; gap: 2px; font-size: 0.8rem; color: var(--muted); }
+.tempo output { font-family: var(--f-mono); color: var(--ink); }
+input[type=range] { accent-color: var(--brass); width: 150px; }
+.pos { font-family: var(--f-mono); font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Partition */
+.sheet { display: grid; gap: 8px; }
+.status { font-size: 0.9rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.status .err { color: var(--warn); font-weight: 600; }
+.status .note { color: var(--ink); }
+.status .warnline { color: var(--warn); }
+.paper {
+  background: var(--paper); border-radius: 10px; border: 1px solid var(--line);
+  padding: 8px 4px; min-height: 260px; overflow-x: auto; color: #111;
+}
+.legend { font-size: 0.82rem; color: var(--muted); }
+.legend code { font-family: var(--f-mono); color: var(--ink); }
+
+/* Tableau de doigtés */
+details.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; }
+details.chart summary { cursor: pointer; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+details.chart summary small { color: var(--muted); }
+.grid { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.cell {
+  border: 1px solid var(--line); border-radius: 10px; padding: 6px 6px 8px; display: grid; justify-items: center; gap: 2px;
+  background: var(--bg); text-align: center;
+}
+.cell.cur { border-color: var(--brass); background: var(--brass-soft); }
+.cell svg { width: 54px; height: 92px; display: block; }
+.cell svg .ln { stroke: var(--muted); stroke-width: 1; }
+.cell svg .hd { fill: var(--ink); }
+.cell svg .ac { fill: var(--ink); font-size: 13px; font-family: var(--f-body); }
+.cell .nm { font-size: 0.78rem; font-weight: 600; line-height: 1.2; }
+.mini { display: flex; gap: 4px; margin-top: 2px; }
+.mini i { width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--muted); display: block; }
+.mini i.on { background: var(--brass); border-color: var(--brass); }
+.cell .alt { font-size: 0.68rem; color: var(--muted); font-family: var(--f-mono); }
+
+.drop { outline: 3px dashed var(--brass); outline-offset: -6px; }
+
+/* Couleurs des harmoniques (hauteur jouée aux lèvres) */
+.check { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; cursor: pointer; font-size: 0.92rem; }
+.check input { accent-color: var(--brass); width: 18px; height: 18px; }
+.lips { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; }
+.lips[hidden] { display: none; }
+.dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; border: 1.5px solid var(--muted); flex: none; }
+.partials { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.82rem; color: var(--muted); align-items: center; }
+.partials span { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
+.partials[hidden] { display: none; }
+.cell svg .hd.col { stroke: var(--muted); stroke-width: 0.8; }
+
+/* Octave par passage */
+.ranges { flex-basis: 100%; }
+.rangeform { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.92rem; }
+.rangeform input[type=number] {
+  font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 7px 8px; min-height: 38px; width: 4.6rem; font-variant-numeric: tabular-nums;
+}
+.rangeform .linkbtn { border: 0; background: none; color: var(--brass-strong); text-decoration: underline; padding: 4px 2px; min-height: 0; font-size: 0.85rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chips:empty { display: none; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--brass-soft); color: var(--brass-strong); border: 1px solid var(--brass); border-radius: 999px; padding: 3px 4px 3px 12px; font-size: 0.85rem; font-weight: 500; min-height: 0; }
+.chip span { font-size: 1rem; line-height: 1; padding: 0 6px; }
+.rangeerr { color: var(--warn); font-size: 0.85rem; }
+
+/* Bibliothèque */
+.library { display: grid; gap: 10px; }
+.libhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.libnote { font-size: 0.85rem; color: var(--muted); }
+.libnote.bad { color: var(--warn); }
+.libflash { font-size: 0.85rem; color: var(--ok); font-weight: 500; }
+.liblist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.libitem { display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.libitem.cur { border-color: var(--brass); box-shadow: inset 0 0 0 1px var(--brass); }
+.libitem .open { flex: 1; min-width: 0; border: 0; background: none; text-align: left; display: grid; gap: 1px; padding: 8px 12px; border-radius: 10px 0 0 10px; }
+.libitem .open strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.libitem .open small { color: var(--muted); font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.libitem .del { border: 0; border-left: 1px solid var(--line); border-radius: 0 10px 10px 0; background: none; color: var(--muted); font-size: 0.8rem; padding: 0 12px; }
+.libitem .del:hover { color: var(--warn); }
+.libitem .del.armed { background: var(--warn); color: #fff; }
+.libempty { font-size: 0.9rem; color: var(--muted); border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; }
+
+@media (max-width: 640px) {
+  .cap { width: 42px; height: 42px; }
+  .valves { gap: 10px; }
+  .noteinfo .name { font-size: 1.5rem; }
+  .desk { padding: 10px 12px; gap: 10px 16px; }
+  input[type=range] { width: 120px; }
+}
+@media (prefers-reduced-motion: reduce) { .cap { transition: none; } }
+</style>
+
+<div class="wrap" id="app">
+  <header class="top">
+    <h1>Doigtés Trompette Si<span class="flat">♭</span></h1>
+    <p>Chargez une partition MuseScore (.mscz) ou MusicXML : chaque note reçoit son doigté, et le pupitre montre les pistons à enfoncer pendant la lecture.</p>
+  </header>
+
+  <section class="controls" aria-label="Réglages">
+    <label class="filebtn primary" for="file">Ouvrir une partition…
+      <input type="file" id="file" accept=".mscz,.mscx,.musicxml,.xml,.mxl,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml">
+    </label>
+    <button id="sample" type="button">Exemple : Au clair de la lune</button>
+    <label class="field" for="part"><span>Instrument de la partition</span>
+      <select id="part"></select>
+    </label>
+    <div class="field"><span>La partition est écrite…</span>
+      <div class="seg" role="radiogroup" aria-label="Type de partition">
+        <label><input type="radio" name="mode" value="auto" id="mode-auto" checked><span>Détection auto</span></label>
+        <label><input type="radio" name="mode" value="concert" id="mode-concert"><span>En sons réels</span></label>
+        <label><input type="radio" name="mode" value="bb" id="mode-bb"><span>Pour trompette si♭</span></label>
+      </div>
+    </div>
+    <label class="field" for="octave"><span>Octave (toute la partition)</span>
+      <select id="octave">
+        <option value="-1">Une octave plus bas</option>
+        <option value="0" selected>Telle quelle</option>
+        <option value="1">Une octave plus haut</option>
+      </select>
+    </label>
+    <label class="field" for="style"><span>Doigtés sous les notes</span>
+      <select id="style">
+        <option value="dots" selected>Pistons ●○●</option>
+        <option value="nums">Chiffres 1-3</option>
+        <option value="both">Les deux</option>
+      </select>
+    </label>
+    <label class="check" for="colors"><input type="checkbox" id="colors" checked> Couleur selon la note jouée aux lèvres</label>
+    <div class="field ranges"><span>Octave par passage</span>
+      <div class="rangeform">
+        <label for="rFrom">Mesures</label><input type="number" id="rFrom" min="0" step="1" inputmode="numeric" value="1">
+        <label for="rTo">à</label><input type="number" id="rTo" min="0" step="1" inputmode="numeric" value="4">
+        <select id="rShift" aria-label="Décalage">
+          <option value="-1" selected>une octave plus bas</option>
+          <option value="1">une octave plus haut</option>
+        </select>
+        <button type="button" id="rAdd">Appliquer</button>
+        <button type="button" class="linkbtn" id="rHere">prendre la mesure en cours</button>
+        <span class="rangeerr" id="rErr"></span>
+      </div>
+      <div class="chips" id="rList"></div>
+    </div>
+  </section>
+
+  <section class="library" aria-label="Mes partitions">
+    <div class="libhead"><h2>Mes partitions</h2><span class="libnote" id="libNote">Chargement de vos partitions…</span><span class="libflash" id="libFlash"></span></div>
+    <ul class="liblist" id="libList"></ul>
+  </section>
+
+  <section class="desk" aria-label="Pupitre">
+    <div class="now">
+      <div class="valves" id="valves" aria-hidden="true">
+        <div class="valve"><div class="cap"></div><b>1</b></div>
+        <div class="valve"><div class="cap"></div><b>2</b></div>
+        <div class="valve"><div class="cap"></div><b>3</b></div>
+      </div>
+      <div class="noteinfo" aria-live="polite">
+        <div class="name" id="nName">—</div>
+        <div class="sub" id="nSub">Chargez une partition</div>
+        <div class="lips" id="nLips" hidden></div>
+        <div class="hint" id="nHint" hidden></div>
+      </div>
+    </div>
+    <div class="transport">
+      <div class="btns">
+        <button id="first" type="button" title="Début" aria-label="Revenir au début">⏮</button>
+        <button id="prev" type="button" title="Note précédente (←)" aria-label="Note précédente">◀</button>
+        <button id="play" type="button" title="Lecture / pause (espace)">▶ Écouter</button>
+        <button id="next" type="button" title="Note suivante (→)" aria-label="Note suivante">▶</button>
+      </div>
+      <label class="tempo" for="tempo">Tempo <span><output id="tempoOut">96</output> à la noire</span>
+        <input type="range" id="tempo" min="40" max="200" step="2" value="96">
+      </label>
+      <span class="pos" id="pos">0 / 0</span>
+    </div>
+  </section>
+
+  <section class="sheet" aria-label="Partition">
+    <div class="status" id="status">Chargement…</div>
+    <div class="paper" id="osmd"></div>
+    <div class="legend">Sous chaque note : <code>●</code> piston enfoncé, <code>○</code> piston levé, dans l'ordre 1 · 2 · 3 (le 1 est le plus proche de l'embouchure). <code>0</code> ou <code>○○○</code> = aucun piston. <code>?</code> = note hors de la tessiture courante. Notes affichées en sons écrits pour trompette en si♭.</div>
+    <div class="partials" id="partials"></div>
+  </section>
+
+  <details class="chart" id="chart" open>
+    <summary><h2>Tableau des doigtés</h2><small>Notes écrites, du Fa♯ grave au Do aigu. Do4 = le do sous la portée.</small></summary>
+    <div class="grid" id="grid"></div>
+  </details>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.8.9/build/opensheetmusicdisplay.min.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = (s) => document.querySelector(s);
+
+/* ---------- Théorie ---------- */
+const STEPS = ["C", "D", "E", "F", "G", "A", "B"];
+const SEMI = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const FR = { C: "Do", D: "Ré", E: "Mi", F: "Fa", G: "Sol", A: "La", B: "Si" };
+const ACC = { "-2": "𝄫", "-1": "♭", "0": "", "1": "♯", "2": "𝄪" };
+// Doigtés standard, indexés par hauteur MIDI écrite (Do4 = 60).
+const FING = {
+  54: "123", 55: "13", 56: "23", 57: "12", 58: "1", 59: "2",
+  60: "0", 61: "123", 62: "13", 63: "23", 64: "12", 65: "1", 66: "2", 67: "0", 68: "23", 69: "12", 70: "1", 71: "2",
+  72: "0", 73: "12", 74: "1", 75: "2", 76: "0", 77: "1", 78: "2", 79: "0", 80: "23", 81: "12", 82: "1", 83: "2",
+  84: "0", 85: "12", 86: "1", 87: "2", 88: "0", 89: "1", 90: "2", 91: "0",
+};
+const ALT = { 69: ["3"], 73: ["123"], 74: ["13"], 76: ["12"], 79: ["13"], 80: ["3"], 81: ["3"] };
+const HINT = {
+  54: "Sortir la coulisse du 3e piston", 55: "Sortir la coulisse du 3e piston",
+  61: "Sortir la coulisse du 3e piston", 62: "Sortir la coulisse du 3e piston",
+  73: "Coulisse du 1er piston un peu sortie", 74: "Coulisse du 1er piston un peu sortie",
+};
+// Combien de demi-tons chaque combinaison de pistons fait descendre.
+const LOWER = { "0": 0, "2": 1, "1": 2, "12": 3, "3": 3, "23": 4, "13": 5, "123": 6 };
+// Harmoniques (note à vide jouée aux lèvres) et leur couleur.
+const PARTIALS = {
+  60: { n: 2, color: "#111111" }, 67: { n: 3, color: "#d62828" }, 72: { n: 4, color: "#f07c00" },
+  76: { n: 5, color: "#f2c200" }, 79: { n: 6, color: "#2f9e44" }, 84: { n: 8, color: "#1c7ed6" },
+  88: { n: 10, color: "#7048e8" }, 91: { n: 12, color: "#d6336c" },
+};
+const partialOf = (midi) => {
+  const f = FING[midi]; if (f == null) return null;
+  const pm = midi + LOWER[f];
+  return PARTIALS[pm] ? { midi: pm, ...PARTIALS[pm] } : null;
+};
+const PC_SPELL =[["C", 0], ["C", 1], ["D", 0], ["E", -1], ["E", 0], ["F", 0], ["F", 1], ["G", 0], ["G", 1], ["A", 0], ["B", -1], ["B", 0]];
+const PC_NAMES = ["Do", "Do♯ / Ré♭", "Ré", "Mi♭ / Ré♯", "Mi", "Fa", "Fa♯ / Sol♭", "Sol", "Sol♯ / La♭", "La", "Si♭ / La♯", "Si"];
+
+const midiOf = (step, alter, oct) => (oct + 1) * 12 + SEMI[step] + alter;
+const nameOf = (step, alter, oct) => FR[step] + (ACC[alter] ?? "") + oct;
+const nameOfMidi = (m) => { const [s, a] = PC_SPELL[((m % 12) + 12) % 12]; return nameOf(s, a, Math.floor(m / 12) - 1); };
+const fingText = (f, style) => {
+  if (f == null) return "?";
+  if (style === "nums") return f === "0" ? "0" : f.split("").join("-");
+  return [1, 2, 3].map((v) => (f.includes(String(v)) ? "●" : "○")).join("");
+};
+
+/* ---------- Exemple intégré (sons réels, comme une partie de flûte) ---------- */
+function sampleXml() {
+  const P = { C5: ["C", 5], D5: ["D", 5], E5: ["E", 5], B4: ["B", 4], A4: ["A", 4], G4: ["G", 4] };
+  const phrase = [["C5 q", "C5 q", "C5 q", "D5 q"], ["E5 h", "D5 h"], ["C5 q", "E5 q", "D5 q", "D5 q"], ["C5 w"]];
+  const middle = [["D5 q", "D5 q", "D5 q", "D5 q"], ["A4 h", "A4 h"], ["D5 q", "C5 q", "B4 q", "A4 q"], ["G4 w"]];
+  const measures = [...phrase, ...phrase, ...middle, ...phrase];
+  const dur = { q: [1, "quarter"], h: [2, "half"], w: [4, "whole"] };
+  let body = "";
+  measures.forEach((m, i) => {
+    body += `<measure number="${i + 1}">`;
+    if (i === 0) body += `<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>96</per-minute></metronome></direction-type><sound tempo="96"/></direction>`;
+    if (i > 0 && i % 4 === 0) body += `<print new-system="yes"/>`;
+    for (const tok of m) {
+      const [p, d] = tok.split(" ");
+      const [st, oc] = P[p];
+      body += `<note><pitch><step>${st}</step><octave>${oc}</octave></pitch><duration>${dur[d][0]}</duration><type>${dur[d][1]}</type></note>`;
+    }
+    if (i === measures.length - 1) body += `<barline location="right"><bar-style>light-heavy</bar-style></barline>`;
+    body += `</measure>`;
+  });
+  return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>Au clair de la lune</work-title></work><identification><creator type="composer">Traditionnel</creator></identification><part-list><score-part id="P1"><part-name>Flûte (sons réels)</part-name></score-part></part-list><part id="P1">${body}</part></score-partwise>`;
+}
+
+/* ---------- Lecture des fichiers ---------- */
+async function readScoreFile(file) {
+  const buf = await file.arrayBuffer();
+  const u8 = new Uint8Array(buf);
+  if (u8[0] === 0x50 && u8[1] === 0x4b) {
+    if (!window.JSZip) throw new Error("Impossible d'ouvrir un fichier .mxl compressé (bibliothèque non chargée). Exportez en .musicxml non compressé.");
+    const zip = await JSZip.loadAsync(buf);
+    let path = null;
+    const cont = zip.file("META-INF/container.xml");
+    if (cont) {
+      const cx = new DOMParser().parseFromString(await cont.async("string"), "application/xml");
+      path = cx.getElementsByTagName("rootfile")[0]?.getAttribute("full-path") || null;
+    }
+    // MuseScore (.mscz) : la partition principale est le .mscx à la racine de l'archive
+    const mscx = Object.keys(zip.files).find((n) => /\.mscx$/i.test(n) && !n.includes("/"));
+    if (mscx) return mscxToMusicXml(await zip.file(mscx).async("string"));
+    if (!path || !/\.(xml|musicxml)$/i.test(path)) path = Object.keys(zip.files).find((n) => /\.(xml|musicxml)$/i.test(n) && !n.startsWith("META-INF"));
+    if (!path || !zip.file(path)) throw new Error("Cette archive ne contient pas de partition MusicXML ni MuseScore.");
+    return zip.file(path).async("string");
+  }
+  let text;
+  if (u8[0] === 0xff && u8[1] === 0xfe) text = new TextDecoder("utf-16le").decode(u8);
+  else if (u8[0] === 0xfe && u8[1] === 0xff) text = new TextDecoder("utf-16be").decode(u8);
+  else text = new TextDecoder("utf-8").decode(u8);
+  if (/<museScore[\s>]/.test(text.slice(0, 2000))) return mscxToMusicXml(text);
+  return text;
+}
+
+/* ---------- Conversion MuseScore (.mscx) → MusicXML ---------- */
+// MuseScore enregistre toujours les hauteurs en sons réels (pitch MIDI + tpc pour l'orthographe) :
+// on produit donc une partition MusicXML en sons réels, que la suite transpose pour la trompette.
+const MS_TICKS = { long: 7680, breve: 3840, whole: 1920, half: 960, quarter: 480, eighth: 240, "16th": 120, "32nd": 60, "64th": 30, "128th": 15 };
+const GRACE_RE = /^(acciaccatura|appoggiatura|grace\d+(after)?)$/;
+const tpcSpell = (tpc) => ["FCGDAEB"[(((tpc + 1) % 7) + 7) % 7], Math.floor((tpc + 1) / 7) - 2];
+const xesc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function mscxToMusicXml(text) {
+  const doc = new DOMParser().parseFromString(text, "application/xml");
+  if (doc.getElementsByTagName("parsererror").length) throw new Error("Ce fichier MuseScore est illisible.");
+  const score = doc.getElementsByTagName("Score")[0];
+  if (!score) throw new Error("Ce fichier MuseScore ne contient pas de partition.");
+  const kt = (el, tag) => { const k = kid(el, tag); return k ? k.textContent.trim() : ""; };
+
+  const title = kids(score, "metaTag").find((m) => m.getAttribute("name") === "workTitle")?.textContent.trim()
+    || [...score.getElementsByTagName("Text")].find((t) => /title/i.test(kt(t, "style")))?.textContent.trim() || "";
+  const composer = kids(score, "metaTag").find((m) => m.getAttribute("name") === "composer")?.textContent.trim() || "";
+  const staves = new Map(kids(score, "Staff").filter((s) => kid(s, "Measure")).map((s) => [s.getAttribute("id"), s]));
+
+  // Tempos, quelle que soit la portée où ils sont écrits, rangés par numéro de mesure
+  const tempos = new Map();
+  for (const st of staves.values()) kids(st, "Measure").forEach((m, i) => {
+    const t = m.getElementsByTagName("Tempo")[0];
+    const v = t ? parseFloat(kt(t, "tempo")) : NaN;
+    if (v > 0 && !tempos.has(i)) tempos.set(i, Math.round(v * 60));
+  });
+
+  const parts = [];
+  let staffNo = 0; // les portées sont numérotées dans l'ordre des parties (MuseScore 4 n'écrit plus l'id)
+  kids(score, "Part").forEach((part, pi) => {
+    const srefs = kids(part, "Staff");
+    const sref = srefs[0];
+    const sid = (sref && sref.getAttribute("id")) || String(staffNo + 1);
+    staffNo += Math.max(1, srefs.length);
+    const st = sref && staves.get(sid);
+    if (!st) return;
+    const stype = sref.getElementsByTagName("StaffType")[0];
+    if (stype && stype.getAttribute("group") === "percussion") return;
+    const name = kt(part, "trackName") || part.getElementsByTagName("longName")[0]?.textContent.trim() || `Partie ${pi + 1}`;
+    parts.push({ id: "P" + (pi + 1), name, body: convertStaff(st, tempos, kt) });
+  });
+  if (!parts.length) throw new Error("Aucune partie mélodique trouvée dans ce fichier MuseScore.");
+
+  return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1">`
+    + (title ? `<work><work-title>${xesc(title)}</work-title></work>` : "")
+    + (composer ? `<identification><creator type="composer">${xesc(composer)}</creator></identification>` : "")
+    + `<part-list>${parts.map((p) => `<score-part id="${p.id}"><part-name>${xesc(p.name)}</part-name></score-part>`).join("")}</part-list>`
+    + parts.map((p) => `<part id="${p.id}">${p.body}</part>`).join("")
+    + `</score-partwise>`;
+}
+
+function convertStaff(staff, tempos, kt) {
+  let out = "", key = null, time = null;
+  const tupById = {};
+  kids(staff, "Measure").forEach((m, mi) => {
+    const voice = kid(m, "voice") || m;
+    const stack = [];
+    let attrs = "", notes = "", newKey = null, newTime = null;
+    for (const el of voice.children) {
+      switch (el.nodeName) {
+        case "KeySig": {
+          const v = kt(el, "concertKey") || kt(el, "accidental");
+          if (v !== "") newKey = parseInt(v, 10) || 0;
+          break;
+        }
+        case "TimeSig": newTime = [parseInt(kt(el, "sigN"), 10) || 4, parseInt(kt(el, "sigD"), 10) || 4]; break;
+        case "Tuplet": {
+          const r = { a: parseInt(kt(el, "actualNotes"), 10) || 1, n: parseInt(kt(el, "normalNotes"), 10) || 1 };
+          if (el.getAttribute("id")) tupById[el.getAttribute("id")] = r; else stack.push(r);
+          break;
+        }
+        case "endTuplet": stack.pop(); break;
+        case "Chord": case "Rest": {
+          if (el.nodeName === "Chord" && [...el.children].some((c) => GRACE_RE.test(c.nodeName))) break;
+          const tref = kid(el, "Tuplet");
+          let tm = tref && tupById[tref.textContent.trim()];
+          if (!tm && stack.length) tm = stack.reduce((acc, r) => ({ a: acc.a * r.a, n: acc.n * r.n }), { a: 1, n: 1 });
+          notes += convertEvent(el, tm, kt);
+          break;
+        }
+      }
+    }
+    if (mi === 0) { key = newKey ?? 0; time = newTime || [4, 4]; }
+    const keyChanged = mi > 0 && newKey !== null && newKey !== key;
+    const timeChanged = mi > 0 && newTime && (newTime[0] !== time[0] || newTime[1] !== time[1]);
+    if (keyChanged) key = newKey;
+    if (timeChanged) time = newTime;
+    if (mi === 0 || keyChanged || timeChanged) {
+      attrs = "<attributes>" + (mi === 0 ? "<divisions>480</divisions>" : "")
+        + (mi === 0 || keyChanged ? `<key><fifths>${key}</fifths></key>` : "")
+        + (mi === 0 || timeChanged ? `<time><beats>${time[0]}</beats><beat-type>${time[1]}</beat-type></time>` : "")
+        + (mi === 0 ? "<clef><sign>G</sign><line>2</line></clef>" : "") + "</attributes>";
+    }
+    const tempo = tempos.get(mi);
+    const dir = tempo ? `<direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${tempo}</per-minute></metronome></direction-type><sound tempo="${tempo}"/></direction>` : "";
+    const left = kid(m, "startRepeat") ? `<barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>` : "";
+    const right = kid(m, "endRepeat") ? `<barline location="right"><bar-style>light-heavy</bar-style><repeat direction="backward"/></barline>` : "";
+    out += `<measure number="${mi + 1}">${left}${attrs}${dir}${notes}${right}</measure>`;
+  });
+  return out;
+}
+
+function convertEvent(el, tm, kt) {
+  const dt = kt(el, "durationType") || "quarter";
+  const dots = parseInt(kt(el, "dots"), 10) || 0;
+  let dur, typeXml = "";
+  if (dt === "measure") {
+    const [n, d] = (kt(el, "duration") || "4/4").split("/").map(Number);
+    dur = Math.round((1920 * n) / (d || 4));
+  } else {
+    dur = Math.round((MS_TICKS[dt] || 480) * (2 - 1 / 2 ** dots) * (tm ? tm.n / tm.a : 1));
+    typeXml = `<type>${dt}</type>` + "<dot/>".repeat(dots)
+      + (tm ? `<time-modification><actual-notes>${tm.a}</actual-notes><normal-notes>${tm.n}</normal-notes></time-modification>` : "");
+  }
+  if (el.nodeName === "Rest") return `<note><rest${dt === "measure" ? ' measure="yes"' : ""}/><duration>${dur}</duration>${typeXml}</note>`;
+  return kids(el, "Note").map((n, i) => {
+    const pitch = parseInt(kt(n, "pitch"), 10);
+    if (isNaN(pitch)) return "";
+    const tpc = parseInt(kt(n, "tpc"), 10);
+    let [step, alter] = isNaN(tpc) ? PC_SPELL[((pitch % 12) + 12) % 12] : tpcSpell(tpc);
+    const oct = Math.floor((pitch - SEMI[step] - alter) / 12) - 1;
+    const tieSp = kids(n, "Spanner").filter((s) => s.getAttribute("type") === "Tie");
+    const tieStart = !!kid(n, "Tie") || tieSp.some((s) => kid(s, "next"));
+    const tieStop = !!kid(n, "endSpanner") || tieSp.some((s) => kid(s, "prev"));
+    const ties = (tieStop ? '<tie type="stop"/>' : "") + (tieStart ? '<tie type="start"/>' : "");
+    const tied = tieStart || tieStop ? `<notations>${tieStop ? '<tied type="stop"/>' : ""}${tieStart ? '<tied type="start"/>' : ""}</notations>` : "";
+    return `<note>${i ? "<chord/>" : ""}<pitch><step>${step}</step>${alter ? `<alter>${alter}</alter>` : ""}<octave>${oct}</octave></pitch><duration>${dur}</duration>${ties}${typeXml}${tied}</note>`;
+  }).join("");
+}
+
+/* ---------- Transformation MusicXML ---------- */
+const kids = (el, tag) => [...el.children].filter((c) => c.nodeName === tag);
+const kid = (el, tag) => kids(el, tag)[0] || null;
+const txt = (el, tag) => (el.getElementsByTagName(tag)[0]?.textContent || "").trim();
+
+function listParts(raw) {
+  const doc = new DOMParser().parseFromString(raw, "application/xml");
+  return [...doc.getElementsByTagName("score-part")].map((sp) => ({
+    id: sp.getAttribute("id"),
+    name: (kid(sp, "part-name")?.textContent || "").trim() || sp.getAttribute("id"),
+  }));
+}
+
+function guessPart(parts) {
+  const t = parts.find((p) => /tromp|trump|cornet|bugle|flugel/i.test(p.name));
+  return (t || parts[0])?.id;
+}
+
+function transposePitch(p, dia, semis) {
+  const step = txt(p, "step"), alter = Math.round(+txt(p, "alter") || 0), oct = +txt(p, "octave");
+  const target = midiOf(step, alter, oct) + semis;
+  const idx = oct * 7 + STEPS.indexOf(step) + dia;
+  let nStep = STEPS[((idx % 7) + 7) % 7], nOct = Math.floor(idx / 7);
+  let nAlt = target - midiOf(nStep, 0, nOct);
+  if (Math.abs(nAlt) > 1) { // double altération : on réécrit plus simplement
+    const [s, a] = PC_SPELL[((target % 12) + 12) % 12];
+    nStep = s; nAlt = a; nOct = Math.floor((target - SEMI[s] - a) / 12) - 1;
+  }
+  const doc = p.ownerDocument;
+  p.textContent = "";
+  const add = (tag, v) => { const e = doc.createElement(tag); e.textContent = String(v); p.appendChild(e); };
+  add("step", nStep); if (nAlt) add("alter", nAlt); add("octave", nOct);
+}
+
+function transformXml(raw, opt) {
+  const doc = new DOMParser().parseFromString(raw, "application/xml");
+  if (doc.getElementsByTagName("parsererror").length) throw new Error("Le fichier n'est pas un XML valide. Réexportez la partition en MusicXML.");
+  const root = doc.documentElement;
+  if (root.nodeName === "score-timewise") throw new Error("Ce fichier est au format MusicXML « timewise », peu courant. Réexportez-le depuis votre logiciel en MusicXML standard.");
+  if (root.nodeName !== "score-partwise") throw new Error("Ce fichier n'est pas une partition MusicXML.");
+
+  const parts = kids(root, "part");
+  if (!parts.length) throw new Error("Aucune partie instrumentale trouvée dans ce fichier.");
+  const pid = parts.some((p) => p.getAttribute("id") === opt.partId) ? opt.partId : parts[0].getAttribute("id");
+  parts.forEach((p) => { if (p.getAttribute("id") !== pid) p.remove(); });
+  const pl = kid(root, "part-list");
+  if (pl) [...pl.children].forEach((c) => { if (c.nodeName !== "score-part" || c.getAttribute("id") !== pid) c.remove(); });
+  const part = kids(root, "part")[0];
+
+  // Transposition déclarée par le fichier (ex. trompette si♭ : chromatic -2)
+  const tr = part.getElementsByTagName("transpose")[0];
+  const octCh = tr ? +txt(tr, "octave-change") || 0 : 0;
+  const fileChrom = tr ? (+txt(tr, "chromatic") || 0) + 12 * octCh : 0;
+  const fileDia = tr ? (+txt(tr, "diatonic") || 0) + 7 * octCh : 0;
+
+  let semis = 0, dia = 0, detected = null;
+  if (opt.mode === "concert") { semis = 2; dia = 1; }
+  else if (opt.mode === "auto") {
+    semis = 2 + fileChrom; dia = 1 + fileDia;
+    detected = fileChrom === -2 ? "bb" : fileChrom === 0 ? "concert" : "other";
+  }
+  const pitchShift = semis;
+  semis += 12 * opt.octave; dia += 7 * opt.octave;
+
+  const ranges = opt.ranges || [];
+  for (const m of kids(part, "measure")) {
+    const num = parseInt(m.getAttribute("number"), 10);
+    const extra = ranges.reduce((s, r) => s + (num >= r.from && num <= r.to ? r.shift : 0), 0);
+    if (!semis && !dia && !extra) continue;
+    for (const p of [...m.getElementsByTagName("pitch")]) transposePitch(p, dia + 7 * extra, semis + 12 * extra);
+  }
+  if (semis || dia) {
+    if (((pitchShift % 12) + 12) % 12) {
+      let df = ((pitchShift * 7) % 12 + 12) % 12; if (df > 6) df -= 12;
+      for (const k of [...part.getElementsByTagName("key")]) {
+        const f = kid(k, "fifths"); if (!f) continue;
+        let v = (+f.textContent || 0) + df; if (v > 7) v -= 12; if (v < -7) v += 12;
+        f.textContent = String(v);
+      }
+      for (const a of [...part.getElementsByTagName("accidental")]) a.remove();
+      for (const h of [...part.getElementsByTagName("harmony")]) h.remove();
+    }
+  }
+  for (const t of [...part.getElementsByTagName("transpose")]) t.remove();
+
+  // Couleur de chaque note selon l'harmonique jouée aux lèvres
+  if (opt.colors) {
+    for (const n of [...part.getElementsByTagName("note")]) {
+      const p = kid(n, "pitch"); if (!p) continue;
+      const st = kid(n, "staff"); if (st && st.textContent.trim() !== "1") continue;
+      const pa = partialOf(midiOf(txt(p, "step"), Math.round(+txt(p, "alter") || 0), +txt(p, "octave")));
+      if (!pa) continue;
+      n.setAttribute("color", pa.color);
+      let nh = kid(n, "notehead");
+      if (!nh) {
+        nh = doc.createElement("notehead"); nh.textContent = "normal";
+        const prev = [...n.children].filter((c) => ["type", "dot", "accidental", "time-modification", "stem"].includes(c.nodeName)).pop();
+        const next = prev ? prev.nextSibling : [...n.children].find((c) => ["notehead-text", "staff", "beam", "notations", "lyric", "play", "listen"].includes(c.nodeName));
+        next ? n.insertBefore(nh, next) : n.appendChild(nh);
+      }
+      nh.setAttribute("color", pa.color);
+      const stem = kid(n, "stem"); if (stem) stem.setAttribute("color", pa.color);
+    }
+  }
+
+  // Doigtés sous chaque note
+  let total = 0, out = 0;
+  const lines = opt.style === "both" ? ["dots", "nums"] : [opt.style];
+  for (const n of [...part.getElementsByTagName("note")]) {
+    const p = kid(n, "pitch");
+    if (!p || kid(n, "chord") || kid(n, "grace")) continue;
+    const st = kid(n, "staff"); if (st && st.textContent.trim() !== "1") continue;
+    if (kids(n, "tie").some((t) => t.getAttribute("type") === "stop")) continue;
+    const m = midiOf(txt(p, "step"), Math.round(+txt(p, "alter") || 0), +txt(p, "octave"));
+    const f = FING[m];
+    total++; if (f == null) out++;
+    lines.forEach((style, i) => {
+      const l = doc.createElement("lyric");
+      l.setAttribute("number", String(91 + i));
+      const sy = doc.createElement("syllabic"); sy.textContent = "single";
+      const tx = doc.createElement("text"); tx.textContent = fingText(f, style);
+      l.append(sy, tx);
+      const before = kid(n, "play") || kid(n, "listen");
+      before ? n.insertBefore(l, before) : n.appendChild(l);
+    });
+  }
+  return { xml: new XMLSerializer().serializeToString(doc), detected, fileChrom, total, out, partId: pid };
+}
+
+/* ---------- État ---------- */
+const state = { raw: null, source: "", parts: [], partId: null, mode: "auto", octave: 0, style: "dots", colors: true, ranges: [] };
+let osmd = null, steps = [], cur = 0, tempo = 96;
+
+const status = $("#status");
+function setStatus(html) { status.innerHTML = html; }
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function ensureOsmd() {
+  if (osmd) return osmd;
+  if (!window.opensheetmusicdisplay) throw new Error("Le moteur d'affichage de partition n'a pas pu se charger. Vérifiez votre connexion puis rechargez la page.");
+  osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("osmd", {
+    autoResize: true, backend: "svg", drawTitle: true, drawSubtitle: true, drawComposer: true,
+    drawPartNames: false, drawLyrics: true, followCursor: true, colorStemsLikeNoteheads: true,
+    cursorsOptions: [{ type: 0, color: "#c8901c", alpha: 0.45, follow: true }],
+  });
+  return osmd;
+}
+
+/* ---------- Bibliothèque de partitions enregistrées ---------- */
+const CHUNK = 120000;
+const lib = { backend: null, items: [], currentId: null, status: "loading", flash: "", queue: Promise.resolve(), ready: null };
+let userActed = false;
+
+function hashText(str) { // cyrb53
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+async function pack(text) {
+  if (!window.CompressionStream) return "raw:" + text;
+  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream("gzip"));
+  const u8 = new Uint8Array(await new Response(stream).arrayBuffer());
+  let bin = "";
+  for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return "gz:" + btoa(bin);
+}
+async function unpack(s) {
+  if (s.startsWith("raw:")) return s.slice(4);
+  const bin = atob(s.slice(3)), u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  const stream = new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return new Response(stream).text();
+}
+function scoreTitle(raw, fileName) {
+  const m = raw.match(/<work-title>([^<]+)<\/work-title>/) || raw.match(/<movement-title>([^<]+)<\/movement-title>/);
+  const t = m ? m[1].trim().replace(/&amp;/g, "&").replace(/&apos;/g, "'").replace(/&quot;/g, '"') : "";
+  return t || fileName.replace(/\.(musicxml|xml|mxl|mscz|mscx)$/i, "");
+}
+
+function dbBackend(db, uid) {
+  const col = db.collection("data/users/" + uid);
+  const chunks = (id) => col.doc(id).collection("chunks");
+  return {
+    kind: "db",
+    subscribe(onItems, onError) {
+      return col.where("kind", "==", "score").onSnapshot(
+        (snap) => onItems(snap.docs.map((d) => ({ ...d.data(), id: d.id })), snap.metadata.fromCache),
+        onError);
+    },
+    async save(meta, packed) {
+      const n = Math.max(1, Math.ceil(packed.length / CHUNK));
+      for (let i = 0; i < n; i++) await chunks(meta.id).doc(String(i)).set({ d: packed.slice(i * CHUNK, (i + 1) * CHUNK) });
+      await col.doc(meta.id).set({ ...meta, chunks: n });
+    },
+    async load(meta) {
+      let s = "";
+      for (let i = 0; i < (meta.chunks || 1); i++) {
+        const g = await chunks(meta.id).doc(String(i)).get();
+        if (!g.exists) throw new Error("Le contenu de cette partition est introuvable.");
+        s += g.data().d;
+      }
+      return s;
+    },
+    update: (id, patch) => col.doc(id).update(patch),
+    async remove(meta) {
+      await col.doc(meta.id).delete();
+      for (let i = 0; i < (meta.chunks || 1); i++) await chunks(meta.id).doc(String(i)).delete();
+    },
+  };
+}
+
+function localBackend() {
+  let ls;
+  try { ls = window.localStorage; ls.setItem("tp-test", "1"); ls.removeItem("tp-test"); } catch { return null; }
+  const listeners = new Set();
+  const read = () => { try { return JSON.parse(ls.getItem("tp-lib") || "[]"); } catch { return []; } };
+  const write = (a) => { ls.setItem("tp-lib", JSON.stringify(a)); listeners.forEach((f) => f(read(), false)); };
+  return {
+    kind: "local",
+    subscribe(on) { listeners.add(on); on(read(), false); return () => listeners.delete(on); },
+    async save(meta, packed) {
+      try { ls.setItem("tp-data-" + meta.id, packed); }
+      catch { const e = new Error("quota"); e.code = "quota_exceeded"; throw e; }
+      write([...read().filter((x) => x.id !== meta.id), { ...meta, chunks: 1 }]);
+    },
+    async load(meta) {
+      const s = ls.getItem("tp-data-" + meta.id);
+      if (s == null) throw new Error("Le contenu de cette partition est introuvable dans ce navigateur.");
+      return s;
+    },
+    async update(id, patch) {
+      write(read().map((x) => (x.id === id ? { ...x, ...patch, settings: { ...(x.settings || {}), ...(patch.settings || {}) } } : x)));
+    },
+    async remove(meta) { try { ls.removeItem("tp-data-" + meta.id); } catch {} write(read().filter((x) => x.id !== meta.id)); },
+  };
+}
+
+lib.ready = (async () => {
+  await Promise.resolve(); // laisser le script finir de s'initialiser
+  let backend = null;
+  try {
+    if (window.claude && typeof window.claude.use === "function") {
+      const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+      const uid = user ? await user.id() : null;
+      if (db && uid) backend = dbBackend(db, uid);
+    }
+  } catch {}
+  if (!backend) backend = localBackend();
+  lib.backend = backend;
+  if (!backend) { lib.status = "off"; renderLibrary(); return; }
+  const timer = setTimeout(() => { if (lib.status === "loading") { lib.status = "slow"; renderLibrary(); } }, 10000);
+  backend.subscribe((items, fromCache) => {
+    if (!fromCache) clearTimeout(timer);
+    lib.items = items.slice().sort((a, b) => (b.lastOpenedAt || 0) - (a.lastOpenedAt || 0));
+    lib.status = fromCache && lib.status !== "ok" ? lib.status : "ok";
+    renderLibrary();
+    maybeAutoOpen();
+  }, () => { clearTimeout(timer); lib.status = "error"; renderLibrary(); });
+})();
+
+function maybeAutoOpen() {
+  if (userActed || !lib.items.length) return;
+  userActed = true;
+  openFromLibrary(lib.items[0]);
+}
+
+function queueWrite(fn) {
+  lib.queue = lib.queue.then(fn).catch((e) => console.warn("Écriture non enregistrée", e));
+  return lib.queue;
+}
+
+async function addToLibrary(raw, fileName) {
+  await lib.ready;
+  const id = "s_" + hashText(raw);
+  const now = Date.now();
+  const existing = lib.items.find((i) => i.id === id);
+  if (existing) {
+    if (lib.backend) queueWrite(() => lib.backend.update(id, { lastOpenedAt: now }));
+    lib.flash = "Cette partition était déjà dans vos partitions.";
+    return { ...existing, settings: { ...(existing.settings || {}) } };
+  }
+  const meta = { id, kind: "score", title: scoreTitle(raw, fileName), fileName, addedAt: now, lastOpenedAt: now, size: raw.length, settings: {} };
+  if (!lib.backend) return meta;
+  try {
+    const packed = await pack(raw);
+    await queueWrite(() => lib.backend.save(meta, packed).then(() => { lib.flash = `« ${meta.title} » est enregistrée.`; }, (e) => {
+      lib.flash = "";
+      lib.status = e && e.code === "quota_exceeded" ? "full" : "savefail";
+    }));
+  } catch { lib.status = "savefail"; }
+  renderLibrary();
+  return meta;
+}
+
+async function openFromLibrary(item) {
+  userActed = true;
+  stop();
+  setStatus(`Ouverture de « ${esc(item.title)} »…`);
+  try {
+    const raw = await unpack(await lib.backend.load(item));
+    queueWrite(() => lib.backend.update(item.id, { lastOpenedAt: Date.now() }));
+    lib.flash = "";
+    await loadRaw(raw, item.title, { ...item, settings: { ...(item.settings || {}) } });
+  } catch (e) {
+    setStatus(`<span class="err">Impossible d'ouvrir « ${esc(item.title)} » : ${esc(e.message || e)}</span>`);
+  }
+}
+
+let settingsTimer = null;
+function persistSettings() {
+  const id = lib.currentId;
+  if (!id || !lib.backend) return;
+  clearTimeout(settingsTimer);
+  const settings = { partId: state.partId, mode: state.mode, octave: state.octave, ranges: state.ranges };
+  settingsTimer = setTimeout(() => queueWrite(() => lib.backend.update(id, { settings })), 600);
+}
+
+const fmtDate = (t) => { try { return new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }); } catch { return ""; } };
+function renderLibrary() {
+  const note = $("#libNote"), list = $("#libList");
+  const msgs = {
+    loading: ["Chargement de vos partitions…", false],
+    slow: ["Vos partitions ne répondent pas encore. Elles apparaîtront dès que la connexion revient.", true],
+    error: ["Vos partitions n'ont pas pu être chargées. Rechargez la page pour réessayer.", true],
+    off: ["Enregistrement indisponible ici : les partitions ouvertes ne seront pas gardées.", true],
+    full: ["Espace plein : supprimez une partition pour en enregistrer une nouvelle.", true],
+    savefail: ["La dernière partition n'a pas pu être enregistrée.", true],
+    ok: [lib.backend?.kind === "db" ? "Gardées dans les données de l'application, visibles par vous seulement." : "Gardées dans ce navigateur.", false],
+  };
+  const [text, bad] = msgs[lib.status] || msgs.ok;
+  note.textContent = text; note.classList.toggle("bad", bad);
+  $("#libFlash").textContent = lib.flash;
+  if (!lib.items.length) {
+    list.innerHTML = lib.status === "loading" || lib.status === "slow" ? "" :
+      `<li class="libempty">Aucune partition enregistrée. Ouvrez un fichier MuseScore ou MusicXML : il sera gardé ici avec vos réglages.</li>`;
+    return;
+  }
+  list.innerHTML = lib.items.map((it) => `<li class="libitem${it.id === lib.currentId ? " cur" : ""}" data-id="${esc(it.id)}">
+    <button type="button" class="open" title="Ouvrir ${esc(it.title)}"><strong>${esc(it.title)}</strong><small>${esc(it.fileName || "")} · ${fmtDate(it.lastOpenedAt || it.addedAt)}</small></button>
+    <button type="button" class="del" aria-label="Supprimer ${esc(it.title)}">Supprimer</button></li>`).join("");
+}
+$("#libList").addEventListener("click", (e) => {
+  const li = e.target.closest(".libitem"); if (!li) return;
+  const item = lib.items.find((i) => i.id === li.dataset.id); if (!item) return;
+  const del = e.target.closest(".del");
+  if (!del) { openFromLibrary(item); return; }
+  if (!del.classList.contains("armed")) {
+    del.classList.add("armed"); del.textContent = "Confirmer";
+    setTimeout(() => { if (del.isConnected) { del.classList.remove("armed"); del.textContent = "Supprimer"; } }, 4000);
+    return;
+  }
+  if (lib.currentId === item.id) lib.currentId = null;
+  lib.flash = `« ${item.title} » est supprimée.`;
+  queueWrite(() => lib.backend.remove(item)).then(renderLibrary);
+});
+
+function syncControls() {
+  const r = document.getElementById("mode-" + state.mode); if (r) r.checked = true;
+  $("#octave").value = String(state.octave);
+  renderRanges();
+}
+
+/* ---------- Octave par passage ---------- */
+const rangeLabel = (r) => `Mes. ${r.from === r.to ? r.from : `${r.from} à ${r.to}`} · ${r.shift < 0 ? "−1" : "+1"} octave`;
+function renderRanges() {
+  $("#rList").innerHTML = state.ranges.map((r, i) =>
+    `<button type="button" class="chip" data-i="${i}" title="Retirer ce passage" aria-label="Retirer : ${esc(rangeLabel(r))}">${esc(rangeLabel(r))}<span aria-hidden="true">×</span></button>`).join("");
+}
+function currentMeasureNumber() {
+  try {
+    const it = osmd && osmd.cursor && osmd.cursor.Iterator;
+    const m = it && (it.CurrentMeasure || (osmd.Sheet.SourceMeasures || [])[it.CurrentMeasureIndex]);
+    return m ? m.MeasureNumber : null;
+  } catch { return null; }
+}
+$("#rAdd").addEventListener("click", () => {
+  const from = parseInt($("#rFrom").value, 10), to = parseInt($("#rTo").value, 10), shift = +$("#rShift").value;
+  const err = $("#rErr");
+  if (isNaN(from) || isNaN(to) || from < 0 || to < from) { err.textContent = "Indiquez une première mesure inférieure ou égale à la dernière."; return; }
+  err.textContent = "";
+  state.ranges = [...state.ranges, { from, to, shift }].sort((a, b) => a.from - b.from);
+  renderRanges(); persistSettings(); renderScore();
+});
+$("#rHere").addEventListener("click", () => {
+  const n = currentMeasureNumber();
+  if (n == null) return;
+  $("#rFrom").value = n; $("#rTo").value = n;
+});
+$("#rList").addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip"); if (!chip) return;
+  state.ranges = state.ranges.filter((_, i) => i !== +chip.dataset.i);
+  renderRanges(); persistSettings(); renderScore();
+});
+
+async function loadRaw(raw, source, entry = null) {
+  stop();
+  state.raw = raw; state.source = source;
+  lib.currentId = entry ? entry.id : null;
+  try { state.parts = listParts(raw); } catch { state.parts = []; }
+  const s = (entry && entry.settings) || {};
+  state.partId = state.parts.some((p) => p.id === s.partId) ? s.partId : guessPart(state.parts);
+  state.mode = ["auto", "concert", "bb"].includes(s.mode) ? s.mode : "auto";
+  state.octave = [-1, 0, 1].includes(s.octave) ? s.octave : 0;
+  state.ranges = Array.isArray(s.ranges)
+    ? s.ranges.filter((r) => r && Number.isInteger(r.from) && Number.isInteger(r.to) && (r.shift === 1 || r.shift === -1)).map((r) => ({ from: r.from, to: r.to, shift: r.shift }))
+    : [];
+  $("#rErr").textContent = "";
+  syncControls();
+  renderLibrary();
+  const sel = $("#part");
+  sel.innerHTML = state.parts.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
+  sel.value = state.partId || "";
+  sel.disabled = state.parts.length < 2;
+  await renderScore();
+}
+
+async function renderScore() {
+  if (!state.raw) return;
+  stop();
+  setStatus("Mise en page de la partition…");
+  try {
+    const r = transformXml(state.raw, state);
+    const o = ensureOsmd();
+    await o.load(r.xml);
+    o.render();
+    tempo = readTempo(state.raw) || tempo;
+    $("#tempo").value = tempo; $("#tempoOut").textContent = tempo;
+    buildSteps();
+    o.cursor.show();
+    cur = 0; showStep();
+    const bits = [`<span class="note">${esc(state.source)}</span>`];
+    if (state.mode === "auto") {
+      bits.push(r.detected === "bb" ? "Détecté : déjà écrite pour trompette en si♭, notes gardées telles quelles."
+        : r.detected === "concert" ? "Détecté : sons réels, transposée d'un ton vers le haut pour la trompette en si♭."
+        : `Détecté : instrument transpositeur (${r.fileChrom > 0 ? "+" : ""}${r.fileChrom} demi-tons), réécrite pour trompette en si♭.`);
+    } else if (state.mode === "concert") bits.push("Sons réels → transposée d'un ton vers le haut.");
+    else bits.push("Notes gardées telles quelles (trompette en si♭).");
+    bits.push(`${r.total} notes`);
+    if (r.out) bits.push(`<span class="warnline">${r.out} note${r.out > 1 ? "s" : ""} hors tessiture (marquée${r.out > 1 ? "s" : ""} « ? ») : essayez une autre octave.</span>`);
+    setStatus(bits.join(" · "));
+  } catch (e) {
+    console.error(e);
+    steps = []; showStep();
+    setStatus(`<span class="err">${esc(e.message || e)}</span>`);
+  }
+}
+
+function readTempo(raw) {
+  const m = raw.match(/<sound[^>]*\stempo="([\d.]+)"/) || raw.match(/<per-minute>\s*([\d.]+)\s*<\/per-minute>/);
+  if (!m) return null;
+  const v = Math.round(+m[1] / 2) * 2;
+  return Math.min(200, Math.max(40, v));
+}
+
+/* ---------- Parcours des notes avec le curseur ---------- */
+function noteMidi(n) {
+  const p = n.Pitch || n.pitch;
+  if (!p) return null;
+  const fund = p.FundamentalNote ?? p.fundamentalNote;
+  const acc = Math.round(p.AccidentalHalfTones ?? 0);
+  const oct = (p.Octave ?? p.octave) + 3;
+  const step = STEPS.find((s) => SEMI[s] === fund);
+  return { midi: (oct + 1) * 12 + fund + acc, step, alter: acc, oct };
+}
+const isRest = (n) => (typeof n.isRest === "function" ? n.isRest() : !n.Pitch);
+const realLen = (n) => n.Length?.RealValue ?? 0.25;
+
+function buildSteps() {
+  steps = [];
+  const c = osmd.cursor;
+  c.reset();
+  let guard = 0;
+  while (!c.Iterator.EndReached && guard++ < 20000) {
+    const it = c.Iterator;
+    const ts = (it.CurrentEnrolledTimestamp || it.currentTimeStamp || it.CurrentSourceTimestamp).RealValue;
+    const notes = c.NotesUnderCursor() || [];
+    const sound = [];
+    let main = null;
+    for (const n of notes) {
+      if (isRest(n)) continue;
+      const info = noteMidi(n); if (!info) continue;
+      if (!main) main = info;
+      const tie = n.NoteTie;
+      if (tie && tie.StartNote && tie.StartNote !== n) continue; // note liée : déjà tenue
+      let dur = realLen(n);
+      if (tie && tie.Notes) dur = tie.Notes.reduce((s, x) => s + realLen(x), 0);
+      sound.push({ midi: info.midi, dur });
+    }
+    const tiedOnly = main && !sound.length;
+    steps.push({ ts, main, sound, tiedOnly, maxLen: Math.max(0, ...notes.map(realLen)) });
+    c.next();
+  }
+  c.reset();
+}
+
+function gotoStep(i) {
+  if (!steps.length) return;
+  i = Math.max(0, Math.min(steps.length - 1, i));
+  const c = osmd.cursor;
+  if (i < cur && i < cur - i) { c.reset(); cur = 0; }
+  while (cur < i) { c.next(); cur++; }
+  while (cur > i) { c.previous(); cur--; }
+  showStep();
+}
+
+function setValves(f) {
+  const box = $("#valves");
+  box.classList.toggle("unknown", f === undefined);
+  box.querySelectorAll(".valve").forEach((v, k) => v.classList.toggle("on", !!f && f.includes(String(k + 1))));
+}
+
+function showStep() {
+  const s = steps[cur];
+  $("#pos").textContent = `${steps.length ? cur + 1 : 0} / ${steps.length}`;
+  const hint = $("#nHint"), lips = $("#nLips");
+  document.querySelectorAll(".cell.cur").forEach((c) => c.classList.remove("cur"));
+  lips.hidden = true;
+  if (!s) { setValves(null); $("#nName").textContent = "—"; $("#nSub").textContent = "Aucune note"; hint.hidden = true; return; }
+  if (!s.main) {
+    setValves(null); $("#nName").textContent = "Silence"; $("#nSub").textContent = "Pas de note à jouer"; hint.hidden = true; return;
+  }
+  const { midi, step, alter, oct } = s.main;
+  const pa = partialOf(midi);
+  if (pa) {
+    lips.hidden = false;
+    lips.innerHTML = `<span class="dot" style="background:${pa.color}"></span>Lèvres : ${nameOfMidi(pa.midi)} (${pa.n}e harmonique)`;
+  }
+  const f = FING[midi];
+  setValves(f);
+  $("#nName").textContent = nameOf(step, alter, oct);
+  const fingLabel = f == null ? "hors tessiture" : f === "0" ? "aucun piston" : `piston${f.length > 1 ? "s" : ""} ${f.split("").join(" + ")}`;
+  $("#nSub").textContent = `${fingLabel} · son réel ${nameOfMidi(midi - 2)}${s.tiedOnly ? " · tenue (liaison)" : ""}`;
+  const extra = [];
+  if (HINT[midi]) extra.push(HINT[midi]);
+  if (f == null) extra.push("Note hors du tableau : changez l'octave ou vérifiez le type de partition.");
+  hint.hidden = !extra.length; hint.textContent = extra.join(" · ");
+  hint.className = f == null ? "warn" : "hint";
+  const cell = document.querySelector(`.cell[data-midi="${midi}"]`);
+  if (cell) cell.classList.add("cur");
+}
+
+/* ---------- Lecture audio ---------- */
+let actx = null, master = null, timers = [], playing = false;
+function synth(freq, at, dur) {
+  const o = actx.createOscillator(); o.type = "sawtooth"; o.frequency.value = freq;
+  const lfo = actx.createOscillator(); lfo.frequency.value = 5.2;
+  const lg = actx.createGain(); lg.gain.setValueAtTime(0, at); lg.gain.linearRampToValueAtTime(freq * 0.005, at + 0.35);
+  lfo.connect(lg).connect(o.frequency);
+  const f = actx.createBiquadFilter(); f.type = "lowpass"; f.Q.value = 2;
+  f.frequency.setValueAtTime(freq * 1.2, at);
+  f.frequency.linearRampToValueAtTime(Math.min(freq * 7, 9000), at + 0.05);
+  f.frequency.setTargetAtTime(Math.min(freq * 4, 6000), at + 0.05, 0.12);
+  const g = actx.createGain();
+  const end = at + Math.max(dur, 0.07);
+  g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(1, at + 0.025);
+  g.gain.setTargetAtTime(0.7, at + 0.025, 0.08); g.gain.setTargetAtTime(0, end, 0.035);
+  o.connect(f).connect(g).connect(master);
+  o.start(at); lfo.start(at); o.stop(end + 0.25); lfo.stop(end + 0.25);
+}
+
+function play() {
+  if (!steps.length) return;
+  if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; actx = new AC(); }
+  actx.resume();
+  if (cur >= steps.length - 1) gotoStep(0);
+  playing = true; $("#play").textContent = "❚❚ Pause";
+  master = actx.createGain(); master.gain.value = 0.22; master.connect(actx.destination);
+  const spw = (4 * 60) / tempo; // secondes par ronde
+  const start = actx.currentTime + 0.1, i0 = cur, t0 = steps[i0].ts;
+  for (let i = i0; i < steps.length; i++) {
+    const at = start + (steps[i].ts - t0) * spw;
+    for (const n of steps[i].sound) synth(440 * Math.pow(2, (n.midi - 2 - 69) / 12), at, n.dur * spw * 0.92);
+    if (i > i0) timers.push(setTimeout(() => gotoStep(i), (at - actx.currentTime) * 1000));
+  }
+  const last = steps[steps.length - 1];
+  const endAt = start + (last.ts - t0 + (last.maxLen || 0.25)) * spw;
+  timers.push(setTimeout(() => stop(), (endAt - actx.currentTime) * 1000 + 150));
+}
+
+function stop() {
+  playing = false;
+  timers.forEach(clearTimeout); timers = [];
+  if (master && actx) {
+    const m = master; m.gain.setTargetAtTime(0, actx.currentTime, 0.02);
+    setTimeout(() => m.disconnect(), 250);
+  }
+  master = null;
+  $("#play").textContent = "▶ Écouter";
+}
+
+/* ---------- Tableau de doigtés ---------- */
+function staffSvg(step, alter, oct, color) {
+  const idx = oct * 7 + STEPS.indexOf(step) - 30; // 0 = Mi4 (1re ligne)
+  const y = (k) => 60 - k * 4;
+  let s = "";
+  for (let k = 0; k <= 8; k += 2) s += `<line class="ln" x1="4" x2="50" y1="${y(k)}" y2="${y(k)}"/>`;
+  for (let k = -2; k >= idx; k -= 2) s += `<line class="ln" x1="20" x2="36" y1="${y(k)}" y2="${y(k)}"/>`;
+  for (let k = 10; k <= idx; k += 2) s += `<line class="ln" x1="20" x2="36" y1="${y(k)}" y2="${y(k)}"/>`;
+  s += `<ellipse class="hd${color ? " col" : ""}"${color ? ` style="fill:${color}"` : ""} cx="28" cy="${y(idx)}" rx="4.8" ry="3.5" transform="rotate(-20 28 ${y(idx)})"/>`;
+  if (alter) s += `<text class="ac" x="12" y="${y(idx) + 4.5}">${ACC[alter]}</text>`;
+  return `<svg viewBox="0 0 54 92" aria-hidden="true">${s}</svg>`;
+}
+function buildChart() {
+  const grid = $("#grid");
+  let html = "";
+  for (let m = 54; m <= 84; m++) {
+    const [s, a] = PC_SPELL[m % 12];
+    const oct = Math.floor(m / 12) - 1;
+    const f = FING[m];
+    const mini = [1, 2, 3].map((v) => `<i class="${f.includes(String(v)) ? "on" : ""}"></i>`).join("");
+    const nm = PC_NAMES[m % 12].split(" / ").map((x) => x + oct).join(" / ");
+    html += `<div class="cell" data-midi="${m}" title="${esc(nm)} : ${f === "0" ? "aucun piston" : f.split("").join(" + ")}">${staffSvg(s, a, oct, state.colors ? partialOf(m)?.color : null)}<div class="nm">${esc(nm)}</div><div class="mini">${mini}</div>${ALT[m] ? `<div class="alt">ou ${ALT[m].join(", ")}</div>` : ""}</div>`;
+  }
+  grid.innerHTML = html;
+  const leg = $("#partials");
+  leg.hidden = !state.colors;
+  leg.innerHTML = "Note jouée aux lèvres (harmonique) :" + Object.entries(PARTIALS)
+    .map(([m, p]) => `<span><i class="dot" style="background:${p.color}"></i>${nameOfMidi(+m)}</span>`).join("");
+  if (steps.length) showStep();
+}
+
+/* ---------- Événements ---------- */
+async function openFile(f) {
+  userActed = true;
+  try {
+    const raw = await readScoreFile(f);
+    if (!/<score-(partwise|timewise)[\s>]/.test(raw)) throw new Error("Ce fichier n'est pas une partition MusicXML.");
+    setStatus("Enregistrement de la partition…");
+    const entry = await addToLibrary(raw, f.name);
+    await loadRaw(raw, entry.title, entry);
+  } catch (err) { setStatus(`<span class="err">${esc(err.message || err)}</span>`); }
+}
+$("#file").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  await openFile(f);
+  e.target.value = "";
+});
+$("#sample").addEventListener("click", () => { userActed = true; lib.flash = ""; loadRaw(sampleXml(), "Exemple : Au clair de la lune (partie de flûte, sons réels)"); });
+$("#part").addEventListener("change", (e) => { state.partId = e.target.value; persistSettings(); renderScore(); });
+document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", (e) => { state.mode = e.target.value; persistSettings(); renderScore(); }));
+$("#octave").addEventListener("change", (e) => { state.octave = +e.target.value; persistSettings(); renderScore(); });
+$("#style").addEventListener("change", (e) => { state.style = e.target.value; renderScore(); });
+$("#colors").addEventListener("change", (e) => { state.colors = e.target.checked; buildChart(); renderScore(); });
+$("#play").addEventListener("click", () => (playing ? stop() : play()));
+$("#prev").addEventListener("click", () => { stop(); gotoStep(cur - 1); });
+$("#next").addEventListener("click", () => { stop(); gotoStep(cur + 1); });
+$("#first").addEventListener("click", () => { stop(); gotoStep(0); });
+$("#tempo").addEventListener("input", (e) => {
+  tempo = +e.target.value; $("#tempoOut").textContent = tempo;
+  if (playing) { stop(); play(); }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.target.closest("input, select, textarea") && e.target.type !== "range") return;
+  if (e.key === "ArrowRight") { e.preventDefault(); stop(); gotoStep(cur + 1); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); stop(); gotoStep(cur - 1); }
+  else if (e.key === " " && !e.target.closest("button")) { e.preventDefault(); playing ? stop() : play(); }
+});
+const app = $("#app");
+app.addEventListener("dragover", (e) => { e.preventDefault(); app.classList.add("drop"); });
+app.addEventListener("dragleave", (e) => { if (e.target === app) app.classList.remove("drop"); });
+app.addEventListener("drop", async (e) => {
+  e.preventDefault(); app.classList.remove("drop");
+  const f = e.dataTransfer.files[0]; if (!f) return;
+  await openFile(f);
+});
+
+buildChart();
+renderLibrary();
+if (!userActed) loadRaw(sampleXml(), "Exemple : Au clair de la lune (partie de flûte, sons réels)");
+})();
+</script>

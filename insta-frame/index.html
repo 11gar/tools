@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Insta Frame</title>
+<style>
+  :root {
+    --bg: #f4f4f2; --panel: #fff; --ink: #1a1a1a; --muted: #6b6b6b;
+    --line: #e2e2de; --accent: #d6336c; --accent-ink: #fff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151515; --panel: #1f1f1f; --ink: #eee; --muted: #9a9a9a; --line: #333; --accent: #f06595; --accent-ink: #1a1a1a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  label { display: block; font-weight: 600; margin: 14px 0 6px; font-size: 13px; }
+  label:first-child { margin-top: 0; }
+  select, input[type=number], input[type=text] {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg); color: var(--ink); font: inherit;
+  }
+  input[type=range] { width: 100%; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > * { flex: 1; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .check { display: flex; gap: 8px; align-items: center; font-weight: 400; margin-top: 14px; }
+  .check input { width: auto; }
+  .result { margin-top: 14px; padding: 10px; background: var(--bg); border-radius: 8px; font-variant-numeric: tabular-nums; }
+  button {
+    font: inherit; font-weight: 600; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); cursor: pointer;
+  }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  .drop {
+    border: 2px dashed var(--line); border-radius: 12px; padding: 28px; text-align: center;
+    color: var(--muted); cursor: pointer; transition: .15s;
+  }
+  .drop.over { border-color: var(--accent); color: var(--accent); }
+  .actions { display: flex; gap: 8px; margin: 14px 0; flex-wrap: wrap; align-items: center; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+  .card canvas { width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; }
+  .card .name { font-size: 12px; margin: 8px 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .btns { display: flex; gap: 6px; }
+  .card button { padding: 5px 8px; font-size: 12px; flex: 1; }
+  .status { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Insta Frame</h1>
+  <p class="sub">Place tes photos sur un fond blanc au format voulu, avec marge, prêtes pour Instagram. Tout reste dans ton navigateur.</p>
+
+  <div class="layout">
+    <div class="panel">
+      <label for="format">Format (largeur:hauteur)</label>
+      <select id="format">
+        <option value="4:5" selected>4:5 — portrait Instagram (recommandé)</option>
+        <option value="1:1">1:1 — carré</option>
+        <option value="3:2">3:2</option>
+        <option value="2:3">2:3</option>
+        <option value="3:4">3:4</option>
+        <option value="4:3">4:3</option>
+        <option value="16:9">16:9</option>
+        <option value="9:16">9:16 — story / reel</option>
+        <option value="1.91:1">1.91:1 — paysage Instagram</option>
+        <option value="custom">Personnalisé…</option>
+      </select>
+      <input type="text" id="customFormat" placeholder="ex. 5:7" style="display:none;margin-top:6px">
+
+      <label for="longSide">Côté long (px)</label>
+      <input type="number" id="longSide" value="1350" min="100" max="8000" step="1">
+      <div class="row" style="margin-top:6px">
+        <button type="button" id="preset1x">1x · 1350</button>
+        <button type="button" id="preset2x">2x · 2700</button>
+      </div>
+      <div class="hint">Défaut Instagram : 1080×1350 (4:5). Instagram stocke les posts en 1080 px de large ; en dessous il agrandit (flou), au-dessus il recompresse.</div>
+
+      <label for="margin">Marge blanche (px)</label>
+      <input type="number" id="margin" value="60" min="0" step="1">
+
+      <label for="quality">Qualité JPEG : <span id="qv">97</span>%</label>
+      <input type="range" id="quality" min="80" max="100" value="97">
+
+      <label class="check"><input type="checkbox" id="upscale" checked> Agrandir les petites photos pour remplir le cadre</label>
+
+      <div class="result" id="result"></div>
+    </div>
+
+    <div>
+      <div class="drop" id="drop">
+        Glisse tes photos ici ou clique pour choisir
+        <input type="file" id="file" accept="image/*" multiple hidden>
+      </div>
+      <div class="actions">
+        <button class="primary" id="dlAll" disabled>Tout télécharger (ZIP)</button>
+        <button id="clear" disabled>Vider</button>
+        <span class="status" id="status"></span>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const items = []; // { name, bitmap, canvas }
+let renderToken = 0;
+
+/* ---------- Paramètres ---------- */
+function parseRatio(str) {
+  const m = String(str).trim().replace(',', '.').match(/^(\d+(?:\.\d+)?)\s*[:x/×]\s*(\d+(?:\.\d+)?)$/i);
+  if (!m) return null;
+  const w = parseFloat(m[1]), h = parseFloat(m[2]);
+  return w > 0 && h > 0 ? [w, h] : null;
+}
+function getParams() {
+  const fmt = $('format').value === 'custom' ? $('customFormat').value : $('format').value;
+  const ratio = parseRatio(fmt) || [4, 5];
+  const long = Math.max(100, Math.min(8000, Math.round(+$('longSide').value) || 1350));
+  const [rw, rh] = ratio;
+  let W, H;
+  if (rw >= rh) { W = long; H = Math.round(long * rh / rw); }
+  else { H = long; W = Math.round(long * rw / rh); }
+  const margin = Math.max(0, Math.round(+$('margin').value) || 0);
+  return { W, H, margin: Math.min(margin, Math.floor(Math.min(W, H) / 2) - 1),
+           quality: +$('quality').value / 100, upscale: $('upscale').checked };
+}
+
+/* ---------- Rendu ---------- */
+// Réduction par paliers (÷2) pour éviter l'aliasing d'un simple drawImage.
+function resample(bitmap, tw, th) {
+  let src = bitmap, sw = bitmap.width, sh = bitmap.height;
+  while (sw / 2 >= tw && sh / 2 >= th) {
+    const nw = Math.max(1, Math.floor(sw / 2)), nh = Math.max(1, Math.floor(sh / 2));
+    const c = document.createElement('canvas'); c.width = nw; c.height = nh;
+    const x = c.getContext('2d'); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+    x.drawImage(src, 0, 0, nw, nh);
+    src = c; sw = nw; sh = nh;
+  }
+  return { src, sw, sh };
+}
+function render(bitmap, p) {
+  const canvas = document.createElement('canvas');
+  canvas.width = p.W; canvas.height = p.H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, p.W, p.H);
+  const aw = p.W - 2 * p.margin, ah = p.H - 2 * p.margin;
+  let scale = Math.min(aw / bitmap.width, ah / bitmap.height);
+  if (!p.upscale) scale = Math.min(scale, 1);
+  const dw = Math.max(1, Math.round(bitmap.width * scale)), dh = Math.max(1, Math.round(bitmap.height * scale));
+  const dx = Math.round((p.W - dw) / 2), dy = Math.round((p.H - dh) / 2);
+  const { src } = resample(bitmap, dw, dh);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, dx, dy, dw, dh);
+  return canvas;
+}
+async function renderAll() {
+  const token = ++renderToken;
+  const p = getParams();
+  $('result').innerHTML = `Sortie : <b>${p.W} × ${p.H} px</b><br>Zone photo : ${p.W - 2 * p.margin} × ${p.H - 2 * p.margin} px`;
+  for (const it of items) {
+    if (token !== renderToken) return;
+    it.canvas = render(it.bitmap, p);
+    it.card.replaceChild(it.canvas, it.card.querySelector('canvas'));
+    await new Promise(r => setTimeout(r)); // laisse respirer l'UI
+  }
+  updateUI();
+}
+
+/* ---------- Export ---------- */
+const toBlob = (canvas, q) => new Promise(res => canvas.toBlob(res, 'image/jpeg', q));
+function outName(name) { return name.replace(/\.[^.]+$/, '') + '_insta.jpg'; }
+function save(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+// ZIP minimal, sans compression (les JPEG ne se compressent pas).
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = ~0; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return ~c >>> 0; }
+function makeZip(files) {
+  const enc = new TextEncoder(), parts = [], central = [];
+  let offset = 0;
+  for (const f of files) {
+    const nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, sz, true); lh.setUint32(22, sz, true); lh.setUint16(26, nm.length, true);
+    parts.push(lh, nm, f.data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+    ch.setUint32(16, crc, true); ch.setUint32(20, sz, true); ch.setUint32(24, sz, true);
+    ch.setUint16(28, nm.length, true); ch.setUint32(42, offset, true);
+    central.push(ch, nm);
+    offset += 30 + nm.length + sz;
+  }
+  const csize = central.reduce((s, x) => s + (x.byteLength ?? x.length), 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, csize, true); end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, end], { type: 'application/zip' });
+}
+
+async function downloadAll() {
+  const q = getParams().quality, used = new Set(), files = [];
+  $('status').textContent = 'Export…';
+  for (const it of items) {
+    let name = outName(it.name), i = 2;
+    while (used.has(name)) name = outName(it.name).replace('_insta', `_insta${i++}`);
+    used.add(name);
+    files.push({ name, data: new Uint8Array(await (await toBlob(it.canvas, q)).arrayBuffer()) });
+  }
+  save(makeZip(files), 'insta_frame.zip');
+  $('status').textContent = `${files.length} image(s) exportée(s).`;
+}
+
+/* ---------- Gestion des fichiers ---------- */
+async function addFiles(fileList) {
+  const files = [...fileList].filter(f => f.type.startsWith('image/'));
+  for (const f of files) {
+    try {
+      const bitmap = await createImageBitmap(f, { imageOrientation: 'from-image' });
+      const card = document.createElement('div'); card.className = 'card';
+      card.innerHTML = '<canvas></canvas><div class="name"></div><div class="btns"><button>Télécharger</button><button>Retirer</button></div>';
+      card.querySelector('.name').textContent = f.name; card.querySelector('.name').title = f.name;
+      const it = { name: f.name, bitmap, card, canvas: null };
+      const [dl, rm] = card.querySelectorAll('button');
+      dl.onclick = async () => save(await toBlob(it.canvas, getParams().quality), outName(it.name));
+      rm.onclick = () => { items.splice(items.indexOf(it), 1); card.remove(); it.bitmap.close?.(); updateUI(); };
+      items.push(it); $('grid').appendChild(card);
+    } catch { $('status').textContent = `Impossible de lire ${f.name}.`; }
+  }
+  renderAll();
+}
+function updateUI() {
+  $('dlAll').disabled = $('clear').disabled = !items.length;
+  if (items.length) $('status').textContent = `${items.length} photo(s)`;
+  else $('status').textContent = '';
+}
+
+/* ---------- Événements ---------- */
+const drop = $('drop');
+drop.onclick = () => $('file').click();
+$('file').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+document.addEventListener('paste', e => { if (e.clipboardData.files.length) addFiles(e.clipboardData.files); });
+
+$('format').onchange = () => { $('customFormat').style.display = $('format').value === 'custom' ? '' : 'none'; renderAll(); };
+$('customFormat').oninput = renderAll;
+['longSide', 'margin', 'upscale'].forEach(id => $(id).addEventListener('input', renderAll));
+$('quality').oninput = () => { $('qv').textContent = $('quality').value; };
+$('preset1x').onclick = () => { $('longSide').value = 1350; renderAll(); };
+$('preset2x').onclick = () => { $('longSide').value = 2700; renderAll(); };
+$('dlAll').onclick = downloadAll;
+$('clear').onclick = () => { items.splice(0).forEach(i => i.bitmap.close?.()); $('grid').innerHTML = ''; updateUI(); };
+
+renderAll();
+</script>
+</body>
+</html>
