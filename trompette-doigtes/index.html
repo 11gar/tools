@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Doigtés Trompette Si♭</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,6 +37,7 @@
 }
 * { box-sizing: border-box; }
 body {
+  margin: 0;
   background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
 }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
@@ -500,7 +502,7 @@ function measureBars(staff, kt) {
     for (const sp of m.getElementsByTagName("Spanner")) {
       if (sp.getAttribute("type") !== "Volta") continue;
       const v = kid(sp, "Volta"); if (!v) continue;
-      const num = (kt(v, "endings") || kt(v, "beginText").replace(/[^d,]/g, "") || "1").replace(/s/g, "");
+      const num = (kt(v, "endings") || kt(v, "beginText").replace(/[^\d,]/g, "") || "1").replace(/\s/g, "");
       const loc = kid(sp, "next") && kid(kid(sp, "next"), "location");
       let n = 1;
       if (loc && kid(loc, "measures")) n = Math.max(1, parseInt(kt(loc, "measures"), 10) || 1);
@@ -1549,3 +1551,4 @@ renderLibrary();
 lib.ready.then(() => { if (!userActed && !lib.items.length) loadRaw(sampleXml(), "Exemple : Au clair de la lune (partie de flûte, sons réels)"); });
 })();
 </script>
+</body></html>

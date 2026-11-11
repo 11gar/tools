@@ -1,0 +1,6 @@
+# Site Netlify de l'outil trompette uniquement.
+# Dans Netlify : Base directory = trompette-doigtes, pas de commande de build.
+[build]
+  publish = "."
+  # Code de sortie 0 = aucun changement dans ce dossier : Netlify saute le déploiement
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ."
