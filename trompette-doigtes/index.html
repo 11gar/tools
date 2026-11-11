@@ -1197,6 +1197,9 @@ async function renderScoreNow() {
   try {
     const r = transformXml(state.raw, state);
     const o = ensureOsmd();
+    // Croches et doubles croches liées par temps quand le fichier ne précise pas ses ligatures
+    // (cas des .mscz convertis) ; sinon on garde celles du fichier.
+    o.EngravingRules.AutoBeamNotes = !/<beam[\s>]/.test(r.xml);
     await o.load(r.xml);
     o.render();
     state.repeats = repeatRanges(r.xml);
