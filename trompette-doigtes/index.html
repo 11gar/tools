@@ -174,6 +174,11 @@ details.chart summary small { color: var(--muted); }
 .libnote { font-size: 0.85rem; color: var(--muted); }
 .libnote.bad { color: var(--warn); }
 .libflash { font-size: 0.85rem; color: var(--ok); font-weight: 500; }
+.libsearch {
+  font: inherit; font-size: 0.92rem; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; min-height: 38px; width: min(100%, 360px);
+}
+.libsearch:focus { border-color: var(--brass); outline: none; }
 .liblist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
 .libitem { display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
 .libitem.cur { border-color: var(--brass); box-shadow: inset 0 0 0 1px var(--brass); }
@@ -265,6 +270,7 @@ details.chart summary small { color: var(--muted); }
 
   <section class="library" aria-label="Mes partitions">
     <div class="libhead"><h2>Mes partitions</h2><span class="libnote" id="libNote">Chargement de vos partitions…</span><span class="libflash" id="libFlash"></span></div>
+    <input type="search" id="libSearch" class="libsearch" placeholder="Rechercher une partition…" aria-label="Rechercher parmi mes partitions" autocomplete="off" hidden>
     <ul class="liblist" id="libList"></ul>
   </section>
 
@@ -981,15 +987,23 @@ function renderLibrary() {
   const [text, bad] = msgs[lib.status] || msgs.ok;
   note.textContent = text; note.classList.toggle("bad", bad);
   $("#libFlash").textContent = lib.flash;
+  const search = $("#libSearch");
+  search.hidden = lib.items.length < 2;
   if (!lib.items.length) {
     list.innerHTML = lib.status === "loading" || lib.status === "slow" ? "" :
       `<li class="libempty">Aucune partition enregistrée. Ouvrez un fichier MuseScore ou MusicXML : il sera gardé ici avec vos réglages.</li>`;
     return;
   }
-  list.innerHTML = lib.items.map((it) => `<li class="libitem${it.id === lib.currentId ? " cur" : ""}" data-id="${esc(it.id)}">
+  // Recherche sans tenir compte des majuscules ni des accents, dans le titre et le nom du fichier
+  const fold = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const words = search.hidden ? [] : fold(search.value).split(/\s+/).filter(Boolean);
+  const shown = lib.items.filter((it) => { const hay = fold(it.title + " " + (it.fileName || "")); return words.every((w) => hay.includes(w)); });
+  if (!shown.length) { list.innerHTML = `<li class="libempty">Aucune partition ne correspond à « ${esc(search.value.trim())} ».</li>`; return; }
+  list.innerHTML = shown.map((it) => `<li class="libitem${it.id === lib.currentId ? " cur" : ""}" data-id="${esc(it.id)}">
     <button type="button" class="open" title="Ouvrir ${esc(it.title)}"><strong>${esc(it.title)}</strong><small>${esc(it.fileName || "")} · ${fmtDate(it.lastOpenedAt || it.addedAt)}</small></button>
     <button type="button" class="del" aria-label="Supprimer ${esc(it.title)}">Supprimer</button></li>`).join("");
 }
+$("#libSearch").addEventListener("input", renderLibrary);
 $("#libList").addEventListener("click", (e) => {
   const li = e.target.closest(".libitem"); if (!li) return;
   const item = lib.items.find((i) => i.id === li.dataset.id); if (!item) return;
