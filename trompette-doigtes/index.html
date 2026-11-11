@@ -820,10 +820,14 @@ function ensureOsmd() {
   r.LyricsHeight = 2;
   r.VoiceSpacingMultiplierVexflow = 0.55;
   r.VoiceSpacingAddendVexflow = 1.5;
-  r.VerticalBetweenLyricsDistance = 0;
+  r.VerticalBetweenLyricsDistance = -0.6; // pistons serrés en colonne
   r.HorizontalBetweenLyricsDistance = 0.1;
   r.LyricsXPaddingFactorForLongLyrics = 0.5;
-  r.LyricsYMarginToBottomLine = 0.6;
+  r.LyricsYMarginToBottomLine = 0.1;
+  // Lignes de portées plus rapprochées pour voir plus de mesures à la fois
+  r.MinimumDistanceBetweenSystems = 1.5;
+  r.MinSkyBottomDistBetweenSystems = 1.5;
+  r.StaffDistance = 4;
   setMeasuresPerLine();
   window.addEventListener("resize", setMeasuresPerLine);
   return osmd;
