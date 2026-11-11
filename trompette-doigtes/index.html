@@ -185,6 +185,22 @@ details.chart summary small { color: var(--muted); }
 .libitem .del.armed { background: var(--warn); color: #fff; }
 .libempty { font-size: 0.9rem; color: var(--muted); border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; }
 
+/* Téléphone : interface plus compacte */
+@media (max-width: 640px) {
+  body { font-size: 13px; }
+  .wrap { gap: 10px; padding-block: 10px 80px; padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
+  h1 { font-size: 1.3rem; }
+  header.top p { font-size: 0.85rem; }
+  .controls { gap: 8px 10px; }
+  select, button, .filebtn { font-size: 0.85rem; padding: 5px 9px; min-height: 32px; }
+  .seg label span { padding: 5px 8px; min-height: 30px; font-size: 0.82rem; }
+  .rangeform input[type=number] { min-height: 32px; padding: 4px 6px; width: 3.8rem; }
+  .paper { padding: 4px 0; border-radius: 8px; }
+  .liblist { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .libitem .open { padding: 6px 8px; }
+  .fab { width: 48px; height: 48px; }
+  details.chart { padding: 10px 12px; }
+}
 </style>
 
 <button id="play" class="fab" type="button" aria-label="Écouter" title="Écouter (espace)" disabled></button>
@@ -737,11 +753,16 @@ new MutationObserver((ms) => {
 function setMeasuresPerLine() {
   if (!osmd) return;
   const r = osmd.EngravingRules, w = $("#osmd").clientWidth;
-  const n = Math.max(2, Math.min(5, Math.floor(w / 230)));
+  // Téléphone : partition réduite et marges minimes pour tenir 2 mesures côte à côte
+  const phone = w < 600;
+  if (osmd.zoom !== (phone ? 0.6 : 1)) osmd.zoom = phone ? 0.6 : 1;
+  r.PageLeftMargin = r.PageRightMargin = phone ? 1.5 : 5;
+  const n = phone ? 2 : Math.max(2, Math.min(5, Math.floor(w / 230)));
   r.RenderXMeasuresPerLineAkaSystem = n;
   // Largeur de base d'une mesure (en unités OSMD : 10 px au zoom 1) ; la ligne est ensuite justifiée.
   const usable = w / (10 * (osmd.zoom || 1)) - r.PageLeftMargin - r.PageRightMargin;
-  r.FixedMeasureWidthFixedValue = Math.max(12, usable / n - 3);
+  // (on retire la place de la clé en début de ligne, sinon OSMD renvoie une mesure à la ligne)
+  r.FixedMeasureWidthFixedValue = Math.max(12, (usable - 10) / n);
 }
 
 function ensureOsmd() {
@@ -1146,6 +1167,7 @@ async function renderScoreNow() {
     // (cas des .mscz convertis) ; sinon on garde celles du fichier.
     o.EngravingRules.AutoBeamNotes = !/<beam[\s>]/.test(r.xml);
     await o.load(r.xml);
+    setMeasuresPerLine(); // le chargement remet le zoom à 1
     o.render();
     state.repeats = repeatRanges(r.xml);
     drawRepeats();
