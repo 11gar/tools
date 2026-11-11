@@ -314,7 +314,7 @@ details.chart summary small { color: var(--muted); }
   <section class="sheet" aria-label="Partition">
     <div class="status" id="status">Chargement…</div>
     <div class="paper" id="osmd"></div>
-    <div class="legend"><b>Cliquez sur une note</b> pour lancer la lecture à partir d'elle. Sous chaque note : <code>●</code> piston enfoncé, <code>○</code> piston levé, dans l'ordre 1 · 2 · 3 (le 1 est le plus proche de l'embouchure). <code>0</code> ou <code>○○○</code> = aucun piston. <code>?</code> = note hors de la tessiture courante. Notes affichées en sons écrits pour trompette en si♭.</div>
+    <div class="legend"><b>Cliquez sur une note</b> pour lancer la lecture à partir d'elle. Sous chaque note, une colonne de trois pistons : le 1 en haut (le plus proche de l'embouchure), le 3 en bas. <code>●</code> piston enfoncé, <code>○</code> piston levé ; trois <code>○</code> = aucun piston. <code>?</code> = note hors de la tessiture courante. Notes affichées en sons écrits pour trompette en si♭.</div>
     <div class="partials" id="partials"></div>
   </section>
 
@@ -368,10 +368,15 @@ const PC_NAMES = ["Do", "Do♯ / Ré♭", "Ré", "Mi♭ / Ré♯", "Mi", "Fa", "
 const midiOf = (step, alter, oct) => (oct + 1) * 12 + SEMI[step] + alter;
 const nameOf = (step, alter, oct) => FR[step] + (ACC[alter] ?? "") + oct;
 const nameOfMidi = (m) => { const [s, a] = PC_SPELL[((m % 12) + 12) % 12]; return nameOf(s, a, Math.floor(m / 12) - 1); };
-const fingText = (f, style) => {
-  if (f == null) return "?";
-  if (style === "nums") return f === "0" ? "0" : f.split("").join("-");
-  return [1, 2, 3].map((v) => (f.includes(String(v)) ? "●" : "○")).join("");
+// Une case par piston, de haut en bas (piston 1 en haut, 3 en bas)
+const valveCells = (f, style) => {
+  if (f == null) return ["?"];
+  return [1, 2, 3].map((v) => {
+    const on = f.includes(String(v));
+    if (style === "nums") return on ? String(v) : "·";
+    if (style === "both") return on ? "❶❷❸"[v - 1] : "○";
+    return on ? "●" : "○";
+  });
 };
 
 /* ---------- Exemple intégré (sons réels, comme une partie de flûte) ---------- */
@@ -700,7 +705,6 @@ function transformXml(raw, opt) {
 
   // Doigtés sous chaque note
   let total = 0, out = 0;
-  const lines = opt.style === "both" ? ["dots", "nums"] : [opt.style];
   for (const n of [...part.getElementsByTagName("note")]) {
     const p = kid(n, "pitch");
     if (!p || kid(n, "chord") || kid(n, "grace")) continue;
@@ -709,11 +713,11 @@ function transformXml(raw, opt) {
     const m = midiOf(txt(p, "step"), Math.round(+txt(p, "alter") || 0), +txt(p, "octave"));
     const f = FING[m];
     total++; if (f == null) out++;
-    lines.forEach((style, i) => {
+    valveCells(f, opt.style).forEach((cell, i) => {
       const l = doc.createElement("lyric");
       l.setAttribute("number", String(91 + i));
       const sy = doc.createElement("syllabic"); sy.textContent = "single";
-      const tx = doc.createElement("text"); tx.textContent = fingText(f, style);
+      const tx = doc.createElement("text"); tx.textContent = cell;
       l.append(sy, tx);
       const before = kid(n, "play") || kid(n, "listen");
       before ? n.insertBefore(l, before) : n.appendChild(l);
@@ -789,6 +793,16 @@ new MutationObserver((ms) => {
   if (ms.some((m) => [...m.addedNodes].some((n) => !(n.classList && n.classList.contains("repeats"))))) { clearTimeout(repTimer); repTimer = setTimeout(drawRepeats, 50); }
 }).observe($("#osmd"), { childList: true });
 
+function setMeasuresPerLine() {
+  if (!osmd) return;
+  const r = osmd.EngravingRules, w = $("#osmd").clientWidth;
+  const n = Math.max(2, Math.min(5, Math.floor(w / 230)));
+  r.RenderXMeasuresPerLineAkaSystem = n;
+  // Largeur de base d'une mesure (en unités OSMD : 10 px au zoom 1) ; la ligne est ensuite justifiée.
+  const usable = w / (10 * (osmd.zoom || 1)) - r.PageLeftMargin - r.PageRightMargin;
+  r.FixedMeasureWidthFixedValue = Math.max(12, usable / n - 3);
+}
+
 function ensureOsmd() {
   if (osmd) return osmd;
   if (!window.opensheetmusicdisplay) throw new Error("Le moteur d'affichage de partition n'a pas pu se charger. Vérifiez votre connexion puis rechargez la page.");
@@ -797,6 +811,21 @@ function ensureOsmd() {
     drawPartNames: false, drawLyrics: true, followCursor: true, colorStemsLikeNoteheads: true,
     cursorsOptions: [{ type: 0, color: "#c8901c", alpha: 0.45, follow: true }],
   });
+  // Mise en page « classique » : toutes les mesures de même largeur, un nombre fixe de mesures par ligne,
+  // les notes se resserrent dans la mesure (croches plus proches). Pistons empilés sous la note.
+  const r = osmd.EngravingRules;
+  r.FixedMeasureWidth = true;
+  r.FixedMeasureWidthUseForPickupMeasures = true;
+  r.StretchLastSystemLine = false;
+  r.LyricsHeight = 2;
+  r.VoiceSpacingMultiplierVexflow = 0.55;
+  r.VoiceSpacingAddendVexflow = 1.5;
+  r.VerticalBetweenLyricsDistance = 0;
+  r.HorizontalBetweenLyricsDistance = 0.1;
+  r.LyricsXPaddingFactorForLongLyrics = 0.5;
+  r.LyricsYMarginToBottomLine = 0.6;
+  setMeasuresPerLine();
+  window.addEventListener("resize", setMeasuresPerLine);
   return osmd;
 }
 
@@ -1220,10 +1249,12 @@ function cursorEls(c) {
 }
 // La partition est redessinée quand la fenêtre change de taille : on relit alors les éléments.
 function refreshEls() {
-  const c = osmd.cursor, keep = cur;
+  const c = osmd.cursor, keep = cur, host = $("#osmd");
+  const sx = window.scrollX, sy = window.scrollY, hl = host.scrollLeft; // le curseur fait défiler : on revient où l'on était
   c.reset(); cur = 0;
   for (let i = 0; i < steps.length; i++) { steps[i].els = cursorEls(c); if (i < steps.length - 1) { c.next(); cur++; } }
   gotoStep(keep);
+  window.scrollTo(sx, sy); host.scrollLeft = hl;
 }
 
 function buildSteps() {
