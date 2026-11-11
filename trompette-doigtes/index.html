@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout : une feuille de partition blanche, puis le tableau de doigtés ; un bouton lecture flottant en bas à droite. */
+/* Layout : une feuille de partition blanche, puis le tableau de doigtés ; un bouton lecture flottant en bas à gauche. */
 :root {
   --bg: #eceff3;
   --surface: #ffffff;
@@ -81,7 +81,7 @@ button:hover, .filebtn:hover { border-color: var(--brass); }
 /* Bouton lecture flottant */
 .fab {
   position: fixed; z-index: 20;
-  right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  left: max(16px, env(safe-area-inset-left, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px));
   width: 56px; height: 56px; padding: 0; border-radius: 50%; justify-content: center;
   background: var(--brass); border-color: var(--brass); color: #fff; font-size: 1.3rem;
   box-shadow: 0 8px 22px -8px rgba(10, 20, 30, 0.55);
@@ -207,7 +207,7 @@ details.chart summary small { color: var(--muted); }
 <div class="wrap" id="app">
   <header class="top">
     <h1>Doigtés Trompette Si<span class="flat">♭</span></h1>
-    <p>Chargez une partition MuseScore (.mscz) ou MusicXML : chaque note reçoit son doigté. Le bouton en bas à droite lance la lecture ; cliquez sur une note pour partir de là.</p>
+    <p>Chargez une partition MuseScore (.mscz) ou MusicXML : chaque note reçoit son doigté. Le bouton en bas à gauche lance la lecture ; cliquez sur une note pour partir de là.</p>
   </header>
 
   <section class="controls" aria-label="Réglages">
