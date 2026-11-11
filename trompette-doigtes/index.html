@@ -185,6 +185,27 @@ details.chart summary small { color: var(--muted); }
 .libitem .open { flex: 1; min-width: 0; border: 0; background: none; text-align: left; display: grid; gap: 1px; padding: 8px 12px; border-radius: 10px 0 0 10px; }
 .libitem .open strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .libitem .open small { color: var(--muted); font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.libitem .side { display: flex; flex-direction: column; border-left: 1px solid var(--line); }
+.libitem .side button { flex: 1; border: 0; background: none; color: var(--muted); font-size: 0.78rem; padding: 0 12px; min-height: 0; border-radius: 0; }
+.libitem .side .tagbtn { border-bottom: 1px solid var(--line); border-top-right-radius: 10px; }
+.libitem .side .del { border-bottom-right-radius: 10px; }
+.libitem .tagbtn:hover { color: var(--brass-strong); }
+.tagrow { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.tag { font-style: normal; font-size: 0.72rem; font-weight: 600; color: var(--brass-strong); background: var(--brass-soft); border-radius: 999px; padding: 1px 8px; }
+.libgroups { display: grid; gap: 14px; }
+.libgroup { display: grid; gap: 6px; }
+.libgroup h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 600; }
+.libgroup h3 .tag { font-size: 0.85rem; padding: 2px 10px; }
+.libgroup h3 span { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
+.libgroup.none h3 { color: var(--muted); }
+.libitem.editing { padding: 10px 12px; }
+.tagform { display: grid; gap: 6px; width: 100%; }
+.tagform label { display: grid; gap: 4px; font-size: 0.85rem; font-weight: 600; }
+.tagform input { font: inherit; font-weight: 400; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; min-height: 36px; }
+.tagform input:focus { border-color: var(--brass); outline: none; }
+.tagform small { color: var(--muted); font-size: 0.78rem; }
+.tagbtns { display: flex; gap: 6px; }
+.tagbtns .primary { background: var(--brass); border-color: var(--brass); color: #fff; font-weight: 600; }
 .libitem .del { border: 0; border-left: 1px solid var(--line); border-radius: 0 10px 10px 0; background: none; color: var(--muted); font-size: 0.8rem; padding: 0 12px; }
 .libitem .del:hover { color: var(--warn); }
 .libitem .del.armed { background: var(--warn); color: #fff; }
@@ -271,7 +292,8 @@ details.chart summary small { color: var(--muted); }
   <section class="library" aria-label="Mes partitions">
     <div class="libhead"><h2>Mes partitions</h2><span class="libnote" id="libNote">Chargement de vos partitions…</span><span class="libflash" id="libFlash"></span></div>
     <input type="search" id="libSearch" class="libsearch" placeholder="Rechercher une partition…" aria-label="Rechercher parmi mes partitions" autocomplete="off" hidden>
-    <ul class="liblist" id="libList"></ul>
+    <div class="libgroups" id="libList"></div>
+    <datalist id="tagSuggest"></datalist>
   </section>
 
   <section class="sheet" aria-label="Partition">
@@ -803,7 +825,7 @@ function ensureOsmd() {
 
 /* ---------- Bibliothèque de partitions enregistrées ---------- */
 const CHUNK = 120000;
-const lib = { backend: null, items: [], currentId: null, status: "loading", flash: "", queue: Promise.resolve(), ready: null };
+const lib = { backend: null, items: [], currentId: null, editing: null, status: "loading", flash: "", queue: Promise.resolve(), ready: null };
 let userActed = false;
 
 function hashText(str) { // cyrb53
@@ -973,6 +995,42 @@ function persistSettings() {
 }
 
 const fmtDate = (t) => { try { return new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }); } catch { return ""; } };
+// Tags : texte libre, sans doublon (majuscules et accents ignorés pour comparer)
+const fold = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const tagsOf = (it) => (Array.isArray(it.tags) ? it.tags.filter((t) => typeof t === "string" && t.trim()) : []);
+function parseTags(text) {
+  const out = [];
+  for (const raw of String(text).split(",")) {
+    const t = raw.trim().replace(/\s+/g, " ").slice(0, 40);
+    if (t && !out.some((x) => fold(x) === fold(t))) out.push(t);
+  }
+  return out.slice(0, 20);
+}
+function allTags() {
+  const seen = new Map();
+  for (const it of lib.items) for (const t of tagsOf(it)) if (!seen.has(fold(t))) seen.set(fold(t), t);
+  return [...seen.values()].sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
+}
+
+function itemHtml(it) {
+  const tags = tagsOf(it);
+  if (lib.editing === it.id) {
+    return `<li class="libitem editing" data-id="${esc(it.id)}">
+      <form class="tagform">
+        <label><span>Tags de « ${esc(it.title)} »</span>
+          <input type="text" name="tags" value="${esc(tags.join(", "))}" placeholder="ex. concert, à travailler" list="tagSuggest" autocomplete="off"></label>
+        <small>Séparez les tags par des virgules.</small>
+        <div class="tagbtns"><button type="submit" class="primary">Enregistrer</button><button type="button" class="cancel">Annuler</button></div>
+      </form></li>`;
+  }
+  return `<li class="libitem${it.id === lib.currentId ? " cur" : ""}" data-id="${esc(it.id)}">
+    <button type="button" class="open" title="Ouvrir ${esc(it.title)}"><strong>${esc(it.title)}</strong><small>${esc(it.fileName || "")} · ${fmtDate(it.lastOpenedAt || it.addedAt)}</small>${tags.length ? `<span class="tagrow">${tags.map((t) => `<i class="tag">${esc(t)}</i>`).join("")}</span>` : ""}</button>
+    <div class="side">
+      <button type="button" class="tagbtn" aria-label="Modifier les tags de ${esc(it.title)}" title="Tags">Tags</button>
+      <button type="button" class="del" aria-label="Supprimer ${esc(it.title)}">Supprimer</button>
+    </div></li>`;
+}
+
 function renderLibrary() {
   const note = $("#libNote"), list = $("#libList");
   const msgs = {
@@ -989,24 +1047,46 @@ function renderLibrary() {
   $("#libFlash").textContent = lib.flash;
   const search = $("#libSearch");
   search.hidden = lib.items.length < 2;
+  const tagsKnown = allTags();
+  $("#tagSuggest").innerHTML = tagsKnown.map((t) => `<option value="${esc(t)}"></option>`).join("");
   if (!lib.items.length) {
     list.innerHTML = lib.status === "loading" || lib.status === "slow" ? "" :
-      `<li class="libempty">Aucune partition enregistrée. Ouvrez un fichier MuseScore ou MusicXML : il sera gardé ici avec vos réglages.</li>`;
+      `<ul class="liblist"><li class="libempty">Aucune partition enregistrée. Ouvrez un fichier MuseScore ou MusicXML : il sera gardé ici avec vos réglages.</li></ul>`;
     return;
   }
-  // Recherche sans tenir compte des majuscules ni des accents, dans le titre et le nom du fichier
-  const fold = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  // Recherche sans tenir compte des majuscules ni des accents : titre, nom du fichier et tags
   const words = search.hidden ? [] : fold(search.value).split(/\s+/).filter(Boolean);
-  const shown = lib.items.filter((it) => { const hay = fold(it.title + " " + (it.fileName || "")); return words.every((w) => hay.includes(w)); });
-  if (!shown.length) { list.innerHTML = `<li class="libempty">Aucune partition ne correspond à « ${esc(search.value.trim())} ».</li>`; return; }
-  list.innerHTML = shown.map((it) => `<li class="libitem${it.id === lib.currentId ? " cur" : ""}" data-id="${esc(it.id)}">
-    <button type="button" class="open" title="Ouvrir ${esc(it.title)}"><strong>${esc(it.title)}</strong><small>${esc(it.fileName || "")} · ${fmtDate(it.lastOpenedAt || it.addedAt)}</small></button>
-    <button type="button" class="del" aria-label="Supprimer ${esc(it.title)}">Supprimer</button></li>`).join("");
+  const shown = lib.items.filter((it) => {
+    const hay = fold(it.title + " " + (it.fileName || "") + " " + tagsOf(it).join(" "));
+    return words.every((w) => hay.includes(w));
+  });
+  if (!shown.length) {
+    list.innerHTML = `<ul class="liblist"><li class="libempty">Aucune partition ne correspond à « ${esc(search.value.trim())} ».</li></ul>`;
+    return;
+  }
+  // Sans aucun tag : une simple liste. Sinon un groupe par tag (une partition peut être dans plusieurs), puis « Sans tag ».
+  if (!tagsKnown.length) { list.innerHTML = `<ul class="liblist">${shown.map(itemHtml).join("")}</ul>`; return; }
+  const groups = tagsKnown.map((t) => ({ name: t, items: shown.filter((it) => tagsOf(it).some((x) => fold(x) === fold(t))) }))
+    .filter((g) => g.items.length);
+  const untagged = shown.filter((it) => !tagsOf(it).length);
+  if (untagged.length) groups.push({ name: "Sans tag", items: untagged, none: true });
+  list.innerHTML = groups.map((g) => `<section class="libgroup${g.none ? " none" : ""}">
+      <h3>${g.none ? "" : '<i class="tag">'}${esc(g.name)}${g.none ? "" : "</i>"}<span>${g.items.length}</span></h3>
+      <ul class="liblist">${g.items.map(itemHtml).join("")}</ul></section>`).join("");
 }
 $("#libSearch").addEventListener("input", renderLibrary);
 $("#libList").addEventListener("click", (e) => {
   const li = e.target.closest(".libitem"); if (!li) return;
   const item = lib.items.find((i) => i.id === li.dataset.id); if (!item) return;
+  if (li.classList.contains("editing")) {
+    if (e.target.closest(".cancel")) { lib.editing = null; renderLibrary(); }
+    return;
+  }
+  if (e.target.closest(".tagbtn")) {
+    lib.editing = item.id; renderLibrary();
+    const input = $("#libList .editing input"); if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+    return;
+  }
   const del = e.target.closest(".del");
   if (!del) { openFromLibrary(item); return; }
   if (!del.classList.contains("armed")) {
@@ -1017,6 +1097,21 @@ $("#libList").addEventListener("click", (e) => {
   if (lib.currentId === item.id) lib.currentId = null;
   lib.flash = `« ${item.title} » est supprimée.`;
   queueWrite(() => lib.backend.remove(item)).then(renderLibrary);
+});
+$("#libList").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const li = e.target.closest(".libitem");
+  const item = li && lib.items.find((i) => i.id === li.dataset.id);
+  lib.editing = null;
+  if (!item) return renderLibrary();
+  const tags = parseTags(e.target.elements.tags.value);
+  item.tags = tags; // affichage immédiat, l'enregistrement suit
+  lib.flash = tags.length ? `Tags de « ${item.title} » enregistrés.` : `Tags de « ${item.title} » retirés.`;
+  renderLibrary();
+  if (lib.backend) queueWrite(() => lib.backend.update(item.id, { tags }));
+});
+$("#libList").addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && e.target.closest(".editing")) { lib.editing = null; renderLibrary(); }
 });
 
 function syncControls() {
