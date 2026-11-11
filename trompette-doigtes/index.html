@@ -124,6 +124,8 @@ input[type=range] { accent-color: var(--brass); width: 150px; }
   background: var(--paper); border-radius: 10px; border: 1px solid var(--line);
   padding: 8px 4px; min-height: 260px; overflow-x: auto; color: #111;
 }
+.paper svg .vf-stavenote { cursor: pointer; }
+.paper svg .vf-stavenote:hover { opacity: 0.7; }
 .legend { font-size: 0.82rem; color: var(--muted); }
 .legend code { font-family: var(--f-mono); color: var(--ink); }
 
@@ -306,7 +308,7 @@ details.chart summary small { color: var(--muted); }
   <section class="sheet" aria-label="Partition">
     <div class="status" id="status">Chargement…</div>
     <div class="paper" id="osmd"></div>
-    <div class="legend">Sous chaque note : <code>●</code> piston enfoncé, <code>○</code> piston levé, dans l'ordre 1 · 2 · 3 (le 1 est le plus proche de l'embouchure). <code>0</code> ou <code>○○○</code> = aucun piston. <code>?</code> = note hors de la tessiture courante. Notes affichées en sons écrits pour trompette en si♭.</div>
+    <div class="legend"><b>Cliquez sur une note</b> pour lancer la lecture à partir d'elle. Sous chaque note : <code>●</code> piston enfoncé, <code>○</code> piston levé, dans l'ordre 1 · 2 · 3 (le 1 est le plus proche de l'embouchure). <code>0</code> ou <code>○○○</code> = aucun piston. <code>?</code> = note hors de la tessiture courante. Notes affichées en sons écrits pour trompette en si♭.</div>
     <div class="partials" id="partials"></div>
   </section>
 
@@ -1101,6 +1103,26 @@ function noteMidi(n) {
 const isRest = (n) => (typeof n.isRest === "function" ? n.isRest() : !n.Pitch);
 const realLen = (n) => n.Length?.RealValue ?? 0.25;
 
+// Éléments SVG des notes sous le curseur (pour retrouver la note cliquée)
+function cursorEls(c) {
+  const els = [];
+  try {
+    for (const g of c.GNotesUnderCursor() || []) {
+      const el = g.getSVGGElement && g.getSVGGElement();
+      const sn = el && (el.closest(".vf-stavenote") || el);
+      if (sn && !els.includes(sn)) els.push(sn);
+    }
+  } catch {}
+  return els;
+}
+// La partition est redessinée quand la fenêtre change de taille : on relit alors les éléments.
+function refreshEls() {
+  const c = osmd.cursor, keep = cur;
+  c.reset(); cur = 0;
+  for (let i = 0; i < steps.length; i++) { steps[i].els = cursorEls(c); if (i < steps.length - 1) { c.next(); cur++; } }
+  gotoStep(keep);
+}
+
 function buildSteps() {
   steps = [];
   const c = osmd.cursor;
@@ -1123,7 +1145,7 @@ function buildSteps() {
       sound.push({ midi: info.midi, dur });
     }
     const tiedOnly = main && !sound.length;
-    steps.push({ ts, main, sound, tiedOnly, maxLen: Math.max(0, ...notes.map(realLen)) });
+    steps.push({ ts, main, sound, tiedOnly, els: cursorEls(c), maxLen: Math.max(0, ...notes.map(realLen)) });
     c.next();
   }
   c.reset();
@@ -1138,6 +1160,32 @@ function gotoStep(i) {
   while (cur > i) { c.previous(); cur--; }
   showStep();
 }
+
+// Clic sur la partition : la note cliquée, sinon la plus proche sur la même ligne.
+function stepAt(x, y) {
+  const probe = steps.find((s) => s.els.length);
+  if (!probe || !probe.els[0].isConnected) refreshEls();
+  let best = -1, bestD = Infinity;
+  for (let i = 0; i < steps.length; i++) {
+    for (const el of steps[i].els) {
+      const r = el.getBoundingClientRect();
+      if (!r.width && !r.height) continue;
+      if (x >= r.left - 2 && x <= r.right + 2 && y >= r.top - 2 && y <= r.bottom + 2) return i;
+      if (y < r.top - 60 || y > r.bottom + 60) continue;
+      const d = Math.abs(x - (r.left + r.right) / 2);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+  }
+  return best;
+}
+$("#osmd").addEventListener("click", (e) => {
+  if (!steps.length || window.getSelection().toString()) return;
+  const i = stepAt(e.clientX, e.clientY);
+  if (i < 0) return;
+  stop();
+  gotoStep(i);
+  play();
+});
 
 function setValves(f) {
   const box = $("#valves");
