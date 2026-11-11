@@ -120,6 +120,12 @@ input[type=range] { accent-color: var(--brass); width: 150px; }
 .status .err { color: var(--warn); font-weight: 600; }
 .status .note { color: var(--ink); }
 .status .warnline { color: var(--warn); }
+.paper { position: relative; }
+.paper > :not(.repeats) { position: relative; z-index: 1; }
+.repeats { position: absolute; inset: 0 auto auto 0; z-index: 0; pointer-events: none; }
+.rep { position: absolute; border-radius: 4px; }
+.rep .bar { position: absolute; left: 0; right: 0; top: 0; height: 5px; border-radius: 3px; }
+.rep .tag { position: absolute; left: 0; bottom: 100%; margin-bottom: 2px; font: 700 12px/1 var(--f-body); color: #fff; padding: 3px 7px; border-radius: 999px; white-space: nowrap; }
 .paper {
   background: var(--paper); border-radius: 10px; border: 1px solid var(--line);
   padding: 8px 4px; min-height: 260px; overflow-x: auto; color: #111;
@@ -447,6 +453,8 @@ function mscxToMusicXml(text) {
     if (v > 0 && !tempos.has(i)) tempos.set(i, Math.round(v * 60));
   });
 
+  const bars = measureBars(staves.values().next().value, kt);
+
   const parts = [];
   let staffNo = 0; // les portées sont numérotées dans l'ordre des parties (MuseScore 4 n'écrit plus l'id)
   kids(score, "Part").forEach((part, pi) => {
@@ -459,7 +467,7 @@ function mscxToMusicXml(text) {
     const stype = sref.getElementsByTagName("StaffType")[0];
     if (stype && stype.getAttribute("group") === "percussion") return;
     const name = kt(part, "trackName") || part.getElementsByTagName("longName")[0]?.textContent.trim() || `Partie ${pi + 1}`;
-    parts.push({ id: "P" + (pi + 1), name, body: convertStaff(st, tempos, kt) });
+    parts.push({ id: "P" + (pi + 1), name, body: convertStaff(st, tempos, kt, bars) });
   });
   if (!parts.length) throw new Error("Aucune partie mélodique trouvée dans ce fichier MuseScore.");
 
@@ -471,7 +479,39 @@ function mscxToMusicXml(text) {
     + `</score-partwise>`;
 }
 
-function convertStaff(staff, tempos, kt) {
+// MuseScore n'écrit les reprises et les cases (1. 2.) que sur la première portée.
+function measureBars(staff, kt) {
+  const bars = [];
+  if (!staff) return bars;
+  const ms = kids(staff, "Measure");
+  let time = [4, 4];
+  ms.forEach((m, mi) => {
+    const b = (bars[mi] = bars[mi] || {});
+    const ts = m.getElementsByTagName("TimeSig")[0];
+    if (ts) time = [parseInt(kt(ts, "sigN"), 10) || 4, parseInt(kt(ts, "sigD"), 10) || 4];
+    if (kid(m, "startRepeat")) b.start = true;
+    const er = kid(m, "endRepeat");
+    if (er) b.end = Math.max(2, parseInt(er.textContent, 10) || 2);
+    for (const sp of m.getElementsByTagName("Spanner")) {
+      if (sp.getAttribute("type") !== "Volta") continue;
+      const v = kid(sp, "Volta"); if (!v) continue;
+      const num = (kt(v, "endings") || kt(v, "beginText").replace(/[^d,]/g, "") || "1").replace(/s/g, "");
+      const loc = kid(sp, "next") && kid(kid(sp, "next"), "location");
+      let n = 1;
+      if (loc && kid(loc, "measures")) n = Math.max(1, parseInt(kt(loc, "measures"), 10) || 1);
+      else if (loc && kid(loc, "fractions")) {
+        const [a, d] = kt(loc, "fractions").split("/").map(Number);
+        n = Math.max(1, Math.round((a / (d || 1)) / (time[0] / time[1])));
+      }
+      const last = Math.min(ms.length - 1, mi + n - 1);
+      b.endingStart = num;
+      (bars[last] = bars[last] || {}).endingStop = { num, open: kt(v, "endHookType") === "0" };
+    }
+  });
+  return bars;
+}
+
+function convertStaff(staff, tempos, kt, bars = []) {
   let out = "", key = null, time = null;
   const tupById = {};
   kids(staff, "Measure").forEach((m, mi) => {
@@ -515,8 +555,11 @@ function convertStaff(staff, tempos, kt) {
     }
     const tempo = tempos.get(mi);
     const dir = tempo ? `<direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${tempo}</per-minute></metronome></direction-type><sound tempo="${tempo}"/></direction>` : "";
-    const left = kid(m, "startRepeat") ? `<barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>` : "";
-    const right = kid(m, "endRepeat") ? `<barline location="right"><bar-style>light-heavy</bar-style><repeat direction="backward"/></barline>` : "";
+    const b = bars[mi] || {};
+    const left = b.start || b.endingStart
+      ? `<barline location="left">${b.start ? "<bar-style>heavy-light</bar-style>" : ""}${b.endingStart ? `<ending number="${b.endingStart}" type="start">${b.endingStart}.</ending>` : ""}${b.start ? '<repeat direction="forward"/>' : ""}</barline>` : "";
+    const right = b.end || b.endingStop
+      ? `<barline location="right">${b.end ? "<bar-style>light-heavy</bar-style>" : ""}${b.endingStop ? `<ending number="${b.endingStop.num}" type="${b.endingStop.open ? "discontinue" : "stop"}"/>` : ""}${b.end ? `<repeat direction="backward" times="${b.end}"/>` : ""}</barline>` : "";
     out += `<measure number="${mi + 1}">${left}${attrs}${dir}${notes}${right}</measure>`;
   });
   return out;
@@ -680,13 +723,71 @@ function transformXml(raw, opt) {
 }
 
 /* ---------- État ---------- */
-const state = { raw: null, source: "", parts: [], partId: null, mode: "auto", octave: 0, style: "dots", colors: true, ranges: [], accOff: [], volTp: 100, volAcc: 60 };
+const state = { raw: null, source: "", parts: [], partId: null, mode: "auto", octave: 0, style: "dots", colors: true, ranges: [], accOff: [], volTp: 100, volAcc: 60, repeats: [] };
 let accParts = []; // [{id, name, events:[{t, midi, dur}], voice}]
 let osmd = null, steps = [], cur = 0, tempo = 96;
 
 const status = $("#status");
 function setStatus(html) { status.innerHTML = html; }
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ---------- Reprises : barre colorée le long du passage répété ---------- */
+const REP_COLORS = ["#1c7ed6", "#2f9e44", "#d6336c", "#7048e8", "#f07c00"];
+function repeatRanges(xml) {
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  const part = doc.getElementsByTagName("part")[0];
+  const out = [];
+  if (!part) return out;
+  let start = 0;
+  kids(part, "measure").forEach((m, i) => {
+    for (const r of m.getElementsByTagName("repeat")) {
+      const dir = r.getAttribute("direction");
+      if (dir === "forward") start = i;
+      else if (dir === "backward") {
+        out.push({ from: start, to: i, times: Math.max(2, parseInt(r.getAttribute("times"), 10) || 2) });
+        start = i + 1;
+      }
+    }
+  });
+  return out;
+}
+function drawRepeats() {
+  const host = $("#osmd");
+  let layer = host.querySelector(":scope > .repeats");
+  if (!layer) { layer = document.createElement("div"); layer.className = "repeats"; host.appendChild(layer); }
+  layer.innerHTML = "";
+  const gs = osmd && osmd.GraphicSheet;
+  const svg = host.querySelector("svg");
+  if (!gs || !svg || !state.repeats || !state.repeats.length) return;
+  const k = 10 * osmd.zoom;
+  const hr = host.getBoundingClientRect(), sr = svg.getBoundingClientRect();
+  const ox = sr.left - hr.left + host.scrollLeft, oy = sr.top - hr.top + host.scrollTop;
+  state.repeats.forEach((rp, ri) => {
+    const color = REP_COLORS[ri % REP_COLORS.length];
+    const segs = [];
+    for (let i = rp.from; i <= rp.to; i++) {
+      const gm = gs.MeasureList[i] && gs.MeasureList[i].find(Boolean);
+      if (!gm) continue;
+      const ps = gm.PositionAndShape, sys = gm.ParentMusicSystem || (gm.ParentStaffLine && gm.ParentStaffLine.ParentMusicSystem);
+      const x0 = ps.AbsolutePosition.x, x1 = x0 + ps.Size.width, y = ps.AbsolutePosition.y;
+      const last = segs[segs.length - 1];
+      if (last && last.sys === sys) last.x1 = x1; else segs.push({ sys, x0, x1, y });
+    }
+    segs.forEach((sg, si) => {
+      const d = document.createElement("div");
+      d.className = "rep";
+      d.style.cssText = `left:${ox + sg.x0 * k}px;top:${oy + (sg.y - 1.6) * k}px;width:${(sg.x1 - sg.x0) * k}px;height:${7.2 * k}px;background:${color}1c`;
+      d.innerHTML = `<div class="bar" style="background:${color}"></div>`
+        + (si ? "" : `<span class="tag" style="background:${color}">↻ Reprise · ${rp.times} fois</span>`);
+      layer.appendChild(d);
+    });
+  });
+}
+let repTimer = null;
+window.addEventListener("resize", () => { clearTimeout(repTimer); repTimer = setTimeout(drawRepeats, 400); });
+new MutationObserver((ms) => {
+  if (ms.some((m) => [...m.addedNodes].some((n) => !(n.classList && n.classList.contains("repeats"))))) { clearTimeout(repTimer); repTimer = setTimeout(drawRepeats, 50); }
+}).observe($("#osmd"), { childList: true });
 
 function ensureOsmd() {
   if (osmd) return osmd;
@@ -1061,6 +1162,8 @@ async function renderScore() {
     const o = ensureOsmd();
     await o.load(r.xml);
     o.render();
+    state.repeats = repeatRanges(r.xml);
+    drawRepeats();
     tempo = readTempo(state.raw) || tempo;
     $("#tempo").value = tempo; $("#tempoOut").textContent = tempo;
     buildSteps();
