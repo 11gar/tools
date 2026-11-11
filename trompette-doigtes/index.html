@@ -1182,7 +1182,15 @@ async function loadRaw(raw, source, entry = null) {
   await renderScore();
 }
 
-async function renderScore() {
+// Une seule mise en page à la fois : deux chargements simultanés (exemple + partition
+// rouverte au démarrage) se marchaient dessus et pouvaient bloquer la page.
+let renderChain = Promise.resolve();
+function renderScore() {
+  const p = renderChain.then(renderScoreNow, renderScoreNow);
+  renderChain = p.catch(() => {});
+  return p;
+}
+async function renderScoreNow() {
   if (!state.raw) return;
   stop();
   setStatus("Mise en page de la partition…");
@@ -1530,6 +1538,7 @@ app.addEventListener("drop", async (e) => {
 
 buildChart();
 renderLibrary();
-if (!userActed) loadRaw(sampleXml(), "Exemple : Au clair de la lune (partie de flûte, sons réels)");
+// L'exemple ne s'affiche que s'il n'y a aucune partition enregistrée à rouvrir.
+lib.ready.then(() => { if (!userActed && !lib.items.length) loadRaw(sampleXml(), "Exemple : Au clair de la lune (partie de flûte, sons réels)"); });
 })();
 </script>
