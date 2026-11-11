@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout : un pupitre collant (pistons + transport) au-dessus d'une feuille de partition blanche, puis le tableau de doigtés. */
+/* Layout : une feuille de partition blanche, puis le tableau de doigtés ; un bouton lecture flottant en bas à droite. */
 :root {
   --bg: #eceff3;
   --surface: #ffffff;
@@ -78,43 +78,17 @@ button:hover, .filebtn:hover { border-color: var(--brass); }
 .seg input:checked + span { background: var(--brass-soft); color: var(--brass-strong); font-weight: 600; }
 .seg input:focus-visible + span { outline: 2px solid var(--brass); outline-offset: -2px; }
 
-/* Pupitre */
-.desk {
-  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
-  padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; justify-content: space-between;
-  box-shadow: 0 6px 20px -14px rgba(10, 20, 30, 0.45);
+/* Bouton lecture flottant */
+.fab {
+  position: fixed; z-index: 20;
+  right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  width: 56px; height: 56px; padding: 0; border-radius: 50%; justify-content: center;
+  background: var(--brass); border-color: var(--brass); color: #fff; font-size: 1.3rem;
+  box-shadow: 0 8px 22px -8px rgba(10, 20, 30, 0.55);
 }
-.now { display: flex; align-items: center; gap: 22px; min-width: 0; flex-wrap: wrap; }
-.valves { display: flex; gap: 14px; }
-.valve { display: grid; justify-items: center; gap: 4px; }
-.cap {
-  width: 58px; height: 58px; border-radius: 50%;
-  background: var(--cap); border: 2px solid var(--line);
-  box-shadow: inset 0 -5px 0 rgba(0,0,0,0.08);
-  transition: background .08s, transform .08s, box-shadow .08s;
-}
-.valve.on .cap {
-  background: radial-gradient(circle at 35% 30%, var(--brass-strong), var(--brass) 65%);
-  border-color: var(--brass-strong); transform: translateY(4px);
-  box-shadow: inset 0 3px 6px rgba(0,0,0,0.3);
-}
-.valve b { font-family: var(--f-mono); font-size: 0.85rem; color: var(--muted); font-weight: 500; }
-.valve.on b { color: var(--brass-strong); }
-.valves.unknown .cap { border-style: dashed; opacity: .5; }
-.noteinfo { display: grid; gap: 2px; min-width: 0; }
-.noteinfo .name { font-family: var(--f-display); font-weight: 800; font-size: 2rem; line-height: 1.05; }
-.noteinfo .sub { color: var(--muted); font-size: 0.88rem; }
-.noteinfo .hint { color: var(--brass-strong); font-size: 0.85rem; font-weight: 500; }
-.noteinfo .warn { color: var(--warn); font-size: 0.85rem; font-weight: 600; }
-.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
-.transport .btns { display: flex; gap: 6px; }
-.transport button { min-width: 42px; justify-content: center; }
-#play { min-width: 104px; background: var(--ink); color: var(--surface); border-color: var(--ink); font-weight: 600; }
-.tempo { display: grid; gap: 2px; font-size: 0.8rem; color: var(--muted); }
-.tempo output { font-family: var(--f-mono); color: var(--ink); }
-input[type=range] { accent-color: var(--brass); width: 150px; }
-.pos { font-family: var(--f-mono); font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.fab:hover { background: var(--brass-strong); border-color: var(--brass-strong); }
+.fab:disabled { opacity: .45; cursor: default; }
+.fab svg { width: 22px; height: 22px; fill: currentColor; display: block; }
 
 /* Partition */
 .sheet { display: grid; gap: 8px; }
@@ -211,20 +185,13 @@ details.chart summary small { color: var(--muted); }
 .libitem .del.armed { background: var(--warn); color: #fff; }
 .libempty { font-size: 0.9rem; color: var(--muted); border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; }
 
-@media (max-width: 640px) {
-  .cap { width: 42px; height: 42px; }
-  .valves { gap: 10px; }
-  .noteinfo .name { font-size: 1.5rem; }
-  .desk { padding: 10px 12px; gap: 10px 16px; }
-  input[type=range] { width: 120px; }
-}
-@media (prefers-reduced-motion: reduce) { .cap { transition: none; } }
 </style>
 
+<button id="play" class="fab" type="button" aria-label="Écouter" title="Écouter (espace)" disabled></button>
 <div class="wrap" id="app">
   <header class="top">
     <h1>Doigtés Trompette Si<span class="flat">♭</span></h1>
-    <p>Chargez une partition MuseScore (.mscz) ou MusicXML : chaque note reçoit son doigté, et le pupitre montre les pistons à enfoncer pendant la lecture.</p>
+    <p>Chargez une partition MuseScore (.mscz) ou MusicXML : chaque note reçoit son doigté. Le bouton en bas à droite lance la lecture ; cliquez sur une note pour partir de là.</p>
   </header>
 
   <section class="controls" aria-label="Réglages">
@@ -283,34 +250,6 @@ details.chart summary small { color: var(--muted); }
   <section class="library" aria-label="Mes partitions">
     <div class="libhead"><h2>Mes partitions</h2><span class="libnote" id="libNote">Chargement de vos partitions…</span><span class="libflash" id="libFlash"></span></div>
     <ul class="liblist" id="libList"></ul>
-  </section>
-
-  <section class="desk" aria-label="Pupitre">
-    <div class="now">
-      <div class="valves" id="valves" aria-hidden="true">
-        <div class="valve"><div class="cap"></div><b>1</b></div>
-        <div class="valve"><div class="cap"></div><b>2</b></div>
-        <div class="valve"><div class="cap"></div><b>3</b></div>
-      </div>
-      <div class="noteinfo" aria-live="polite">
-        <div class="name" id="nName">—</div>
-        <div class="sub" id="nSub">Chargez une partition</div>
-        <div class="lips" id="nLips" hidden></div>
-        <div class="hint" id="nHint" hidden></div>
-      </div>
-    </div>
-    <div class="transport">
-      <div class="btns">
-        <button id="first" type="button" title="Début" aria-label="Revenir au début">⏮</button>
-        <button id="prev" type="button" title="Note précédente (←)" aria-label="Note précédente">◀</button>
-        <button id="play" type="button" title="Lecture / pause (espace)">▶ Écouter</button>
-        <button id="next" type="button" title="Note suivante (→)" aria-label="Note suivante">▶</button>
-      </div>
-      <label class="tempo" for="tempo">Tempo <span><output id="tempoOut">96</output> à la noire</span>
-        <input type="range" id="tempo" min="40" max="200" step="2" value="96">
-      </label>
-      <span class="pos" id="pos">0 / 0</span>
-    </div>
   </section>
 
   <section class="sheet" aria-label="Partition">
@@ -1211,7 +1150,6 @@ async function renderScoreNow() {
     state.repeats = repeatRanges(r.xml);
     drawRepeats();
     tempo = readTempo(state.raw) || tempo;
-    $("#tempo").value = tempo; $("#tempoOut").textContent = tempo;
     buildSteps();
     o.cursor.show();
     cur = 0; showStep();
@@ -1338,41 +1276,23 @@ $("#osmd").addEventListener("click", (e) => {
   play();
 });
 
-function setValves(f) {
-  const box = $("#valves");
-  box.classList.toggle("unknown", f === undefined);
-  box.querySelectorAll(".valve").forEach((v, k) => v.classList.toggle("on", !!f && f.includes(String(k + 1))));
-}
-
 function showStep() {
   const s = steps[cur];
-  $("#pos").textContent = `${steps.length ? cur + 1 : 0} / ${steps.length}`;
-  const hint = $("#nHint"), lips = $("#nLips");
+  $("#play").disabled = !steps.length;
   document.querySelectorAll(".cell.cur").forEach((c) => c.classList.remove("cur"));
-  lips.hidden = true;
-  if (!s) { setValves(null); $("#nName").textContent = "—"; $("#nSub").textContent = "Aucune note"; hint.hidden = true; return; }
-  if (!s.main) {
-    setValves(null); $("#nName").textContent = "Silence"; $("#nSub").textContent = "Pas de note à jouer"; hint.hidden = true; return;
-  }
-  const { midi, step, alter, oct } = s.main;
-  const pa = partialOf(midi);
-  if (pa) {
-    lips.hidden = false;
-    lips.innerHTML = `<span class="dot" style="background:${pa.color}"></span>Lèvres : ${nameOfMidi(pa.midi)} (${pa.n}e harmonique)`;
-  }
-  const f = FING[midi];
-  setValves(f);
-  $("#nName").textContent = nameOf(step, alter, oct);
-  const fingLabel = f == null ? "hors tessiture" : f === "0" ? "aucun piston" : `piston${f.length > 1 ? "s" : ""} ${f.split("").join(" + ")}`;
-  $("#nSub").textContent = `${fingLabel} · son réel ${nameOfMidi(midi - 2)}${s.tiedOnly ? " · tenue (liaison)" : ""}`;
-  const extra = [];
-  if (HINT[midi]) extra.push(HINT[midi]);
-  if (f == null) extra.push("Note hors du tableau : changez l'octave ou vérifiez le type de partition.");
-  hint.hidden = !extra.length; hint.textContent = extra.join(" · ");
-  hint.className = f == null ? "warn" : "hint";
-  const cell = document.querySelector(`.cell[data-midi="${midi}"]`);
+  if (!s || !s.main) return;
+  const cell = document.querySelector(`.cell[data-midi="${s.main.midi}"]`);
   if (cell) cell.classList.add("cur");
 }
+const ICON_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+const ICON_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+function setPlayButton(on) {
+  const b = $("#play");
+  b.innerHTML = on ? ICON_PAUSE : ICON_PLAY;
+  b.setAttribute("aria-label", on ? "Pause" : "Écouter");
+  b.title = on ? "Pause (espace)" : "Écouter (espace)";
+}
+setPlayButton(false);
 
 /* ---------- Lecture audio ---------- */
 let actx = null, master = null, timers = [], playing = false, loop = null;
@@ -1416,7 +1336,7 @@ function play() {
   if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; actx = new AC(); }
   actx.resume();
   if (cur >= steps.length - 1) gotoStep(0);
-  playing = true; $("#play").textContent = "❚❚ Pause";
+  playing = true; setPlayButton(true);
   master = actx.createGain(); master.gain.value = 0.22;
   const comp = actx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
   master.connect(comp).connect(actx.destination);
@@ -1466,7 +1386,7 @@ function stop() {
     setTimeout(() => m.disconnect(), 250);
   }
   master = null;
-  $("#play").textContent = "▶ Écouter";
+  setPlayButton(false);
 }
 
 /* ---------- Tableau de doigtés ---------- */
@@ -1552,13 +1472,6 @@ $("#octave").addEventListener("change", (e) => { state.octave = +e.target.value;
 $("#style").addEventListener("change", (e) => { state.style = e.target.value; renderScore(); });
 $("#colors").addEventListener("change", (e) => { state.colors = e.target.checked; buildChart(); renderScore(); });
 $("#play").addEventListener("click", () => (playing ? stop() : play()));
-$("#prev").addEventListener("click", () => { stop(); gotoStep(cur - 1); });
-$("#next").addEventListener("click", () => { stop(); gotoStep(cur + 1); });
-$("#first").addEventListener("click", () => { stop(); gotoStep(0); });
-$("#tempo").addEventListener("input", (e) => {
-  tempo = +e.target.value; $("#tempoOut").textContent = tempo;
-  if (playing) { stop(); play(); }
-});
 document.addEventListener("keydown", (e) => {
   if (e.target.closest("input, select, textarea") && e.target.type !== "range") return;
   if (e.key === "ArrowRight") { e.preventDefault(); stop(); gotoStep(cur + 1); }
